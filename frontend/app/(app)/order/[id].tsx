@@ -178,16 +178,14 @@ export default function OrderDetail() {
       {/* Action buttons */}
       <View style={styles.bottom}>
         {order.payment_status !== "paid" && (
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            <Pressable testID="pay-cash-btn" onPress={markPaidCash} disabled={updating} style={[styles.actionBtn, styles.btnSecondary]}>
-              <Ionicons name="cash-outline" size={16} color={colors.brand} />
-              <Text style={[styles.actionText, { color: colors.brand }]}>Bayar Cash</Text>
-            </Pressable>
-            <Pressable testID="pay-midtrans-btn" onPress={payMidtrans} disabled={updating} style={[styles.actionBtn, styles.btnPrimary]}>
-              <Ionicons name="card-outline" size={16} color="#fff" />
-              <Text style={styles.actionText}>Bayar Online</Text>
-            </Pressable>
-          </View>
+          <Pressable testID="pay-cash-btn" onPress={markPaidCash} disabled={updating} style={[styles.actionBtn, styles.btnPrimary]}>
+            {updating ? <ActivityIndicator color="#fff" /> : (
+              <>
+                <Ionicons name="cash-outline" size={16} color="#fff" />
+                <Text style={styles.actionText}>Tandai Lunas (Cash)</Text>
+              </>
+            )}
+          </Pressable>
         )}
         {canAdvance && (
           <Pressable testID="next-status-btn" onPress={nextStatus} disabled={updating} style={[styles.actionBtn, styles.btnPrimary, { marginTop: order.payment_status !== "paid" ? spacing.sm : 0 }]}>
