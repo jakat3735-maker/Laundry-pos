@@ -20,8 +20,8 @@ import { colors, spacing, radius } from "@/src/theme";
 export default function SignIn() {
   const router = useRouter();
   const { signIn } = useAuth();
-  const [email, setEmail] = useState("owner@laundry.com");
-  const [password, setPassword] = useState("owner123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,11 +103,6 @@ export default function SignIn() {
               )}
             </Pressable>
 
-            <View style={styles.demoBox}>
-              <Text style={styles.demoTitle}>Akun Demo:</Text>
-              <Text style={styles.demoText}>Owner: owner@laundry.com / owner123</Text>
-              <Text style={styles.demoText}>Kasir: kasir@laundry.com / kasir123</Text>
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
