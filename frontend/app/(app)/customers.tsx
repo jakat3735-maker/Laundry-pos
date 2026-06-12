@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { api } from "@/src/api/client";
+import { useRealtimeEvent } from "@/src/contexts/RealtimeContext";
 import { colors, spacing, radius } from "@/src/theme";
 
 export default function Customers() {
@@ -27,6 +28,7 @@ export default function Customers() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  useRealtimeEvent("customers_updated", () => load());
 
   const openNew = () => { setEditing(null); setName(""); setPhone(""); setAddress(""); setModal(true); };
   const openEdit = (c: any) => { setEditing(c); setName(c.name); setPhone(c.phone); setAddress(c.address || ""); setModal(true); };

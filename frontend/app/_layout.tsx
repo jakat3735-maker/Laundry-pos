@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider } from "@/src/contexts/AuthContext";
+import { RealtimeProvider } from "@/src/contexts/RealtimeContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,8 +26,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FFFFFF" } }} />
+          <RealtimeProvider>
+            <StatusBar style="dark" />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FFFFFF" } }} />
+          </RealtimeProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

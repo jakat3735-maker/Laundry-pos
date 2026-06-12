@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { api } from "@/src/api/client";
+import { useRealtimeEvent } from "@/src/contexts/RealtimeContext";
 import { colors, spacing, radius, statusColors, formatIDR } from "@/src/theme";
 
 const FILTERS = [
@@ -35,6 +36,7 @@ export default function Orders() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(filter); }, [filter, load]));
+  useRealtimeEvent("orders_updated", () => load(filter));
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]} testID="orders-screen">

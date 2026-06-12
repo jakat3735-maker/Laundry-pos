@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { api } from "@/src/api/client";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { useRealtimeEvent } from "@/src/contexts/RealtimeContext";
 import { colors, spacing, radius, formatIDR } from "@/src/theme";
 
 const CATS = [
@@ -40,6 +41,7 @@ export default function Services() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  useRealtimeEvent("services_updated", () => load());
 
   const openNew = () => { setEditing(null); setName(""); setPrice(""); setUnit("kg"); setCategory("reguler"); setModal(true); };
   const openEdit = (s: any) => { setEditing(s); setName(s.name); setPrice(String(s.price)); setUnit(s.unit); setCategory(s.category); setModal(true); };

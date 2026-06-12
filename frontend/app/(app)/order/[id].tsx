@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { WebView } from "react-native-webview";
 import { api } from "@/src/api/client";
+import { useRealtimeEvent } from "@/src/contexts/RealtimeContext";
 import { colors, spacing, radius, statusColors, formatIDR } from "@/src/theme";
 
 const STATUS_FLOW = ["diterima", "dicuci", "siap", "selesai", "diambil"];
@@ -28,6 +29,9 @@ export default function OrderDetail() {
   }, [id]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  useRealtimeEvent("orders_updated", (p) => {
+    if (!p?.order_no || p.order_no === order?.order_no) load();
+  });
 
   const nextStatus = async () => {
     if (!order) return;

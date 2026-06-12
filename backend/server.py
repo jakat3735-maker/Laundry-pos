@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request, WebSocket, WebSocketDisconnect
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -11,9 +11,10 @@ import base64
 import bcrypt
 import jwt
 import httpx
+import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Set
 from datetime import datetime, timezone, timedelta
 
 
@@ -39,6 +40,49 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Laundry POS API")
 api = APIRouter(prefix="/api")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+
+# ------------------------ WebSocket Manager ------------------------
+class WSManager:
+    def __init__(self) -> None:
+        self.active: Set[WebSocket] = set()
+        self._lock = asyncio.Lock()
+
+    async def connect(self, ws: WebSocket) -> None:
+        await ws.accept()
+        async with self._lock:
+            self.active.add(ws)
+
+    async def disconnect(self, ws: WebSocket) -> None:
+        async with self._lock:
+            self.active.discard(ws)
+
+    async def broadcast(self, event: str, payload: Optional[dict] = None) -> None:
+        msg = {"type": event, "payload": payload or {}, "ts": now_iso()}
+        dead: List[WebSocket] = []
+        # snapshot to avoid mutation during iteration
+        async with self._lock:
+            conns = list(self.active)
+        for ws in conns:
+            try:
+                await ws.send_json(msg)
+            except Exception:
+                dead.append(ws)
+        if dead:
+            async with self._lock:
+                for d in dead:
+                    self.active.discard(d)
+
+
+ws_manager = WSManager()
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def new_id() -> str:
+    return str(uuid.uuid4())
 
 
 # ------------------------ Models ------------------------
@@ -169,14 +213,6 @@ def require_owner(user: UserPublic = Depends(get_current_user)) -> UserPublic:
     return user
 
 
-def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def new_id() -> str:
-    return str(uuid.uuid4())
-
-
 # ------------------------ Auth ------------------------
 @api.post("/auth/register", response_model=UserPublic)
 async def register(payload: UserCreate, _current=Depends(require_owner)):
@@ -239,6 +275,7 @@ async def create_customer(payload: CustomerIn, _user=Depends(get_current_user)):
     doc = {"id": new_id(), "created_at": now_iso(), **payload.dict()}
     await db.customers.insert_one(doc)
     doc.pop("_id", None)
+    await ws_manager.broadcast("customers_updated")
     return Customer(**doc)
 
 
@@ -248,12 +285,14 @@ async def update_customer(cid: str, payload: CustomerIn, _user=Depends(get_curre
     doc = await db.customers.find_one({"id": cid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Customer not found")
+    await ws_manager.broadcast("customers_updated")
     return Customer(**doc)
 
 
 @api.delete("/customers/{cid}")
 async def delete_customer(cid: str, _user=Depends(get_current_user)):
     await db.customers.delete_one({"id": cid})
+    await ws_manager.broadcast("customers_updated")
     return {"ok": True}
 
 
@@ -269,6 +308,7 @@ async def create_service(payload: ServiceIn, _owner=Depends(require_owner)):
     doc = {"id": new_id(), **payload.dict()}
     await db.services.insert_one(doc)
     doc.pop("_id", None)
+    await ws_manager.broadcast("services_updated")
     return Service(**doc)
 
 
@@ -278,12 +318,14 @@ async def update_service(sid: str, payload: ServiceIn, _owner=Depends(require_ow
     doc = await db.services.find_one({"id": sid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Service not found")
+    await ws_manager.broadcast("services_updated")
     return Service(**doc)
 
 
 @api.delete("/services/{sid}")
 async def delete_service(sid: str, _owner=Depends(require_owner)):
     await db.services.delete_one({"id": sid})
+    await ws_manager.broadcast("services_updated")
     return {"ok": True}
 
 
@@ -334,6 +376,7 @@ async def create_order(payload: OrderIn, user: UserPublic = Depends(get_current_
     }
     await db.orders.insert_one(doc)
     doc.pop("_id", None)
+    await ws_manager.broadcast("orders_updated", {"order_no": doc["order_no"]})
     return Order(**doc)
 
 
@@ -343,6 +386,7 @@ async def update_status(oid: str, payload: StatusUpdate, _user=Depends(get_curre
     doc = await db.orders.find_one({"id": oid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Order not found")
+    await ws_manager.broadcast("orders_updated", {"order_no": doc["order_no"], "status": doc["status"]})
     return Order(**doc)
 
 
@@ -355,12 +399,14 @@ async def update_payment(oid: str, payload: PaymentUpdate, _user=Depends(get_cur
     doc = await db.orders.find_one({"id": oid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Order not found")
+    await ws_manager.broadcast("orders_updated", {"order_no": doc["order_no"], "payment_status": doc["payment_status"]})
     return Order(**doc)
 
 
 @api.delete("/orders/{oid}")
 async def delete_order(oid: str, _owner=Depends(require_owner)):
     await db.orders.delete_one({"id": oid})
+    await ws_manager.broadcast("orders_updated")
     return {"ok": True}
 
 
@@ -500,6 +546,29 @@ async def on_startup():
 @api.get("/")
 async def root():
     return {"service": "Laundry POS API", "version": "1.0"}
+
+
+# ------------------------ WebSocket Endpoint ------------------------
+@app.websocket("/api/ws")
+async def websocket_endpoint(websocket: WebSocket, token: str = ""):
+    """Real-time event stream. Client connects with ?token=<JWT>.
+    Server broadcasts JSON events: {type, payload, ts}."""
+    try:
+        jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+    except Exception:
+        await websocket.close(code=4401)
+        return
+    await ws_manager.connect(websocket)
+    try:
+        await websocket.send_json({"type": "connected", "payload": {}, "ts": now_iso()})
+        while True:
+            # Keep alive — client can send "ping", we ignore content
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await ws_manager.disconnect(websocket)
+    except Exception as e:
+        logger.warning("WS error: %s", e)
+        await ws_manager.disconnect(websocket)
 
 
 app.include_router(api)

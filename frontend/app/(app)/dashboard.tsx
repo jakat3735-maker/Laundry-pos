@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { api } from "@/src/api/client";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { useRealtimeEvent, useRealtime } from "@/src/contexts/RealtimeContext";
 import { colors, spacing, radius, statusColors, formatIDR } from "@/src/theme";
 
 interface Stats {
@@ -19,6 +20,7 @@ interface Stats {
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const { connected } = useRealtime();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,6 +38,7 @@ export default function Dashboard() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  useRealtimeEvent("orders_updated", () => load());
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -59,7 +62,10 @@ export default function Dashboard() {
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.greet}>Halo, {user?.full_name?.split(" ")[0]}</Text>
-            <Text style={styles.role}>{user?.role === "owner" ? "Owner" : "Kasir"} • Laundry POS</Text>
+            <View style={styles.liveRow}>
+              <View style={[styles.liveDot, { backgroundColor: connected ? colors.success : colors.muted }]} />
+              <Text style={styles.role}>{user?.role === "owner" ? "Owner" : "Kasir"} • {connected ? "Live tersinkron" : "Mode offline"}</Text>
+            </View>
           </View>
           <Pressable testID="logout-btn" onPress={signOut} style={styles.iconBtn}>
             <Ionicons name="log-out-outline" size={22} color={colors.onSurfaceSecondary} />
@@ -151,7 +157,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg,
   },
   greet: { fontSize: 20, fontWeight: "600", color: colors.onSurface },
-  role: { fontSize: 12, color: colors.onSurfaceSecondary, marginTop: 2 },
+  role: { fontSize: 12, color: colors.onSurfaceSecondary },
+  liveRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  liveDot: { width: 7, height: 7, borderRadius: 4 },
   iconBtn: {
     width: 40, height: 40, borderRadius: radius.pill,
     backgroundColor: colors.surface, alignItems: "center", justifyContent: "center",
