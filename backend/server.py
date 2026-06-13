@@ -510,46 +510,61 @@ async def midtrans_notification(request: Request):
 
 # ------------------------ Seed ------------------------
 async def seed():
-    # default owner
-    if not await db.users.find_one({"email": "owner@laundry.com"}):
-        await db.users.insert_one({
-            "id": new_id(),
-            "email": "owner@laundry.com",
-            "full_name": "Owner Laundry",
-            "role": "owner",
-            "hashed_password": hash_password("owner123"),
-            "created_at": now_iso(),
-        })
-    if not await db.users.find_one({"email": "kasir@laundry.com"}):
-        await db.users.insert_one({
-            "id": new_id(),
-            "email": "kasir@laundry.com",
-            "full_name": "Kasir Demo",
-            "role": "cashier",
-            "hashed_password": hash_password("kasir123"),
-            "created_at": now_iso(),
-        })
-    # default services
-    if await db.services.count_documents({}) == 0:
-        await db.services.insert_many([
-            {"id": new_id(), "name": "Cuci Kering Reguler", "price": 7000, "unit": "kg", "category": "reguler"},
-            {"id": new_id(), "name": "Cuci Setrika Reguler", "price": 10000, "unit": "kg", "category": "reguler"},
-            {"id": new_id(), "name": "Cuci Setrika Express", "price": 15000, "unit": "kg", "category": "express"},
-            {"id": new_id(), "name": "Setrika Saja", "price": 5000, "unit": "kg", "category": "reguler"},
-            {"id": new_id(), "name": "Bed Cover", "price": 25000, "unit": "pcs", "category": "satuan"},
-            {"id": new_id(), "name": "Jas / Blazer", "price": 20000, "unit": "pcs", "category": "satuan"},
-        ])
-    # default customers
-    if await db.customers.count_documents({}) == 0:
-        await db.customers.insert_many([
-            {"id": new_id(), "name": "Budi Santoso", "phone": "081234567890", "address": "Jl. Mawar No. 1", "created_at": now_iso()},
-            {"id": new_id(), "name": "Siti Aminah", "phone": "081298765432", "address": "Jl. Melati No. 5", "created_at": now_iso()},
-        ])
+    try:
+        # default owner
+        if not await db.users.find_one({"email": "owner@laundry.com"}):
+            await db.users.insert_one({
+                "id": new_id(),
+                "email": "owner@laundry.com",
+                "full_name": "Owner Laundry",
+                "role": "owner",
+                "hashed_password": hash_password("owner123"),
+                "created_at": now_iso(),
+            })
+        if not await db.users.find_one({"email": "kasir@laundry.com"}):
+            await db.users.insert_one({
+                "id": new_id(),
+                "email": "kasir@laundry.com",
+                "full_name": "Kasir Demo",
+                "role": "cashier",
+                "hashed_password": hash_password("kasir123"),
+                "created_at": now_iso(),
+            })
+        # default services
+        if await db.services.count_documents({}) == 0:
+            await db.services.insert_many([
+                {"id": new_id(), "name": "Cuci Kering Reguler", "price": 7000, "unit": "kg", "category": "reguler"},
+                {"id": new_id(), "name": "Cuci Setrika Reguler", "price": 10000, "unit": "kg", "category": "reguler"},
+                {"id": new_id(), "name": "Cuci Setrika Express", "price": 15000, "unit": "kg", "category": "express"},
+                {"id": new_id(), "name": "Setrika Saja", "price": 5000, "unit": "kg", "category": "reguler"},
+                {"id": new_id(), "name": "Bed Cover", "price": 25000, "unit": "pcs", "category": "satuan"},
+                {"id": new_id(), "name": "Jas / Blazer", "price": 20000, "unit": "pcs", "category": "satuan"},
+            ])
+        # default customers
+        if await db.customers.count_documents({}) == 0:
+            await db.customers.insert_many([
+                {"id": new_id(), "name": "Budi Santoso", "phone": "081234567890", "address": "Jl. Mawar No. 1", "created_at": now_iso()},
+                {"id": new_id(), "name": "Siti Aminah", "phone": "081298765432", "address": "Jl. Melati No. 5", "created_at": now_iso()},
+            ])
+        logger.info("Database seeding completed successfully.")
+    except Exception as e:
+        logger.error(
+            "Database seeding failed — check MONGO_URL credentials. "
+            "The app will continue running but default data was not inserted. "
+            "Error: %s",
+            e,
+        )
 
 
 @app.on_event("startup")
 async def on_startup():
-    await seed()
+    try:
+        await seed()
+    except Exception as e:
+        logger.error(
+            "Unexpected error during startup seed — app will continue running. Error: %s",
+            e,
+        )
 
 
 @api.get("/")
