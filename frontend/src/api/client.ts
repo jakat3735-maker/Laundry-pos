@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
+console.log("DEBUG: API Base URL is:", `${BASE}/api`);
 
 export const api = axios.create({
   baseURL: `${BASE}/api`,

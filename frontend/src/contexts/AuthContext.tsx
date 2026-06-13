@@ -74,13 +74,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const res = await api.post("/auth/login", { email, password });
-    const { access_token, user: u } = res.data;
-    setAuthToken(access_token);
-    await storage.set(TOKEN_KEY, access_token);
-    await storage.set(USER_KEY, JSON.stringify(u));
-    setToken(access_token);
-    setUser(u);
+    try {
+      const res = await api.post("/auth/login", { email, password });
+      const { access_token, user: u } = res.data;
+      setAuthToken(access_token);
+      await storage.set(TOKEN_KEY, access_token);
+      await storage.set(USER_KEY, JSON.stringify(u));
+      setToken(access_token);
+      setUser(u);
+    } catch (error: any) {
+      if (error.response) {
+        console.log("DEBUG: Login failed with status:", error.response.status);
+        console.log("DEBUG: Error detail:", error.response.data);
+      } else if (error.request) {
+        console.log("DEBUG: No response received from server. Is the backend running at", api.defaults.baseURL, "?");
+      } else {
+        console.log("DEBUG: Request setup error:", error.message);
+      }
+      throw error;
+    }
   };
 
   const signOut = async () => {

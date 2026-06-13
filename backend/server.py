@@ -234,9 +234,18 @@ async def register(payload: UserCreate, _current=Depends(require_owner)):
 
 @api.post("/auth/login", response_model=Token)
 async def login(payload: LoginIn):
+    print(f"DEBUG: Login attempt for email: {payload.email}")
     user = await db.users.find_one({"email": payload.email}, {"_id": 0})
-    if not user or not verify_password(payload.password, user["hashed_password"]):
+    if not user:
+        print(f"DEBUG: User not found in DB")
         raise HTTPException(status_code=401, detail="Email atau password salah")
+    
+    is_valid = verify_password(payload.password, user["hashed_password"])
+    print(f"DEBUG: Password valid: {is_valid}")
+    
+    if not is_valid:
+        raise HTTPException(status_code=401, detail="Email atau password salah")
+
     token = create_token(user["id"], user["role"])
     return Token(
         access_token=token,
