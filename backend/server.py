@@ -549,7 +549,11 @@ async def seed():
 
 @app.on_event("startup")
 async def on_startup():
-    await seed()
+    try:
+        await seed()
+        logger.info("Database seeding completed or skipped.")
+    except Exception as e:
+        logger.error(f"Seeding failed: {e}. Check your MONGO_URL and Network Access.")
 
 
 @api.get("/")
