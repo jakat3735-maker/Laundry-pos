@@ -626,7 +626,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.set_x(4)
         pdf.cell(0, 4, f"No: {order.get('order_no', '-')}", ln=1)
         pdf.set_x(4)
-        pdf.cell(0, 4, f"Plg: {str(order.get('customer_name', '-'))[:20]}", ln=1)
+        pdf.cell(0, 4, f"Cst: {str(order.get('customer_name', '-'))[:20]}", ln=1)
         
         created_at = order.get('created_at', "")
         date_str = created_at[:10] if created_at else "-"
