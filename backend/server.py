@@ -599,7 +599,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.set_font("Arial", "B", 10)
     pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
     pdf.set_font("Arial", "", 7)
-    pdf.cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN WANGI", ln=1, align="C")
+    pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN WANGI", align="C")
     pdf.cell(0, 4, "-"*35, ln=1, align="C")
     
     pdf.set_font("Arial", "", 8)
