@@ -440,7 +440,7 @@ async def delete_order(oid: str, _owner=Depends(require_owner)):
 @api.get("/dashboard/stats")
 async def dashboard_stats(_user=Depends(get_current_user)):
     today = now_wib().strftime("%Y-%m-%d")
-    all_orders = await db.orders.find({}, {"_id": 0}).to_list(5000)
+    all_orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
     today_orders = [o for o in all_orders if o["created_at"].startswith(today)]
     revenue_today = sum(o["total"] for o in today_orders if o.get("payment_status") == "paid")
     revenue_all = sum(o["total"] for o in all_orders if o.get("payment_status") == "paid")
