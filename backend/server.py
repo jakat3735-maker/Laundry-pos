@@ -613,21 +613,29 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.set_font(font_main, "B", 10)
         pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
         pdf.set_font(font_main, "", 7)
-        pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH AND RAPI", align="C")
+        pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
         
+        # Explicitly move to next line and reset X position for the separator
+        pdf.ln(1)
+        pdf.set_x(4)
         pdf.set_font("courier", "", 8)
         pdf.cell(0, 4, "-------------------------------", ln=1, align="C")
         
         # Info Order
         pdf.set_font(font_main, "", 8)
+        pdf.set_x(4)
         pdf.cell(0, 4, f"No: {order.get('order_no', '-')}", ln=1)
+        pdf.set_x(4)
         pdf.cell(0, 4, f"Plg: {str(order.get('customer_name', '-'))[:20]}", ln=1)
         
         created_at = order.get('created_at', "")
         date_str = created_at[:10] if created_at else "-"
         time_str = created_at[11:16] if len(created_at) >= 16 else ""
+        pdf.set_x(4)
         pdf.cell(0, 4, f"Tgl: {date_str} {time_str}", ln=1)
         
+        pdf.ln(1)
+        pdf.set_x(4)
         pdf.set_font("courier", "", 8)
         pdf.cell(0, 4, "-------------------------------", ln=1, align="C")
         
@@ -646,6 +654,8 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
             pdf.cell(8, 4, str(qty), 0, 0, "C")
             pdf.cell(17, 4, f"{int(price * qty):,}", 0, 1, "R")
             
+        pdf.ln(1)
+        pdf.set_x(4)
         pdf.set_font("courier", "", 8)
         pdf.cell(0, 4, "-------------------------------", ln=1, align="C")
         
