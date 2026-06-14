@@ -449,6 +449,7 @@ async def dashboard_stats(_user=Depends(get_current_user)):
         "orders_total": len(all_orders),
         "by_status": by_status,
         "active_orders": [Order(**o).dict() for o in all_orders if o["status"] in ("diterima", "dicuci", "siap")][:10],
+        "finished_orders": [Order(**o).dict() for o in all_orders if o["status"] in ("selesai", "diambil")][:10],
     }
 
 
