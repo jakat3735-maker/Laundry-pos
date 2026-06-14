@@ -82,8 +82,13 @@ class WSManager:
 ws_manager = WSManager()
 
 
+def now_wib() -> datetime:
+    # WIB is UTC+7
+    return datetime.now(timezone.utc) + timedelta(hours=7)
+
+
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return now_wib().isoformat()
 
 
 def new_id() -> str:
@@ -352,7 +357,7 @@ async def delete_service(sid: str, _owner=Depends(require_owner)):
 
 # ------------------------ Orders ------------------------
 async def _next_order_no() -> str:
-    today = datetime.now(timezone.utc).strftime("%d%m%Y")
+    today = now_wib().strftime("%d%m%Y")
     count = await db.orders.count_documents({"order_no": {"$regex": f"^D3G-{today}"}})
     return f"D3G-{today}-{count + 1:04d}"
 
@@ -434,7 +439,7 @@ async def delete_order(oid: str, _owner=Depends(require_owner)):
 # ------------------------ Dashboard ------------------------
 @api.get("/dashboard/stats")
 async def dashboard_stats(_user=Depends(get_current_user)):
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = now_wib().strftime("%Y-%m-%d")
     all_orders = await db.orders.find({}, {"_id": 0}).to_list(5000)
     today_orders = [o for o in all_orders if o["created_at"].startswith(today)]
     revenue_today = sum(o["total"] for o in today_orders if o.get("payment_status") == "paid")
@@ -463,7 +468,7 @@ async def export_pdf(_user=Depends(get_current_user)):
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "Laporan Pesanan Laundry", ln=True, align="C")
     pdf.set_font("Arial", size=10)
-    pdf.cell(0, 10, f"Dicetak pada: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
+    pdf.cell(0, 10, f"Dicetak pada: {now_wib().strftime('%d-%m-%Y %H:%M:%S')} WIB", ln=True, align="C")
     pdf.ln(10)
     
     # Table Header
