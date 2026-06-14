@@ -527,7 +527,7 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "DIEARMA 3G LAUNDRY", ln=1, align="C")
-    pdf.set_font("Helvetica", "", 10)
+    pdf.set_font("Arial", "", 10)
     pdf.cell(0, 6, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN WANGI", ln=1, align="C")
     pdf.ln(10)
     
@@ -576,7 +576,7 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.cell(0, 5, "1. Pengambilan barang wajib membawa nota ini.", ln=True)
     pdf.cell(0, 5, "2. Barang tidak diambil > 1 bulan di luar tanggung jawab kami.", ln=True)
     pdf.ln(10)
-    pdf.cell(0, 10, "Terima kasih sudah Laundry di tempat kami", 0, 1, "C")
+    pdf.cell(0, 10, "Terima kasih sudah Laundry di tempat kami :)", 0, 1, "C")
 
     pdf_bytes = pdf.output()
     headers = {'Content-Disposition': f'attachment; filename="nota_{order["order_no"]}.pdf"'}
