@@ -632,7 +632,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         date_str = created_at[:10] if created_at else "-"
         time_str = created_at[11:16] if len(created_at) >= 16 else ""
         pdf.set_x(4)
-        pdf.cell(0, 4, f"Tgl: {date_str} {time_str}", ln=1)
+        pdf.cell(0, 4, f"Time: {date_str} {time_str}", ln=1)
         
         pdf.ln(1)
         pdf.set_x(4)
