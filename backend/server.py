@@ -484,7 +484,7 @@ async def export_pdf(_user=Depends(get_current_user)):
         pdf.cell(30, 8, dt, 1, 0, "C")
         pdf.cell(25, 8, o["status"], 1, 0, "C")
         pdf.cell(25, 8, o["payment_status"], 1, 0, "C")
-        pdf.cell(30, 8, f"Rp {int(o['total']):,}", 1, 1, "R")
+        pdf.cell(30, 8, f"Rp {int(o['total']):,}".replace(",", "."), 1, 1, "R")
         
     pdf_bytes = pdf.output()
     
@@ -558,13 +558,13 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.set_font("Arial", size=10)
     for i in order['items']:
         pdf.cell(50, 8, i['service_name'], 1)
-        pdf.cell(28, 8, f"{int(i['price']):,}", 1, 0, "C")
+        pdf.cell(28, 8, f"{int(i['price']):,}".replace(",", "."), 1, 0, "C")
         pdf.cell(20, 8, str(i['quantity']), 1, 0, "C")
-        pdf.cell(30, 8, f"{int(i['price'] * i['quantity']):,}", 1, 1, "R")
+        pdf.cell(30, 8, f"{int(i['price'] * i['quantity']):,}".replace(",", "."), 1, 1, "R")
         
     pdf.set_font("Arial", "B", 11)
     pdf.cell(98, 10, "TOTAL HARGA", 1, 0, "R")
-    pdf.cell(30, 10, f"Rp {int(order['total']):,}", 1, 1, "R")
+    pdf.cell(30, 10, f"Rp {int(order['total']):,}".replace(",", "."), 1, 1, "R")
     
     pdf.ln(10)
     pdf.set_font("Arial", "I", 9)
@@ -654,7 +654,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
             price = i.get('price', 0)
             pdf.cell(25, 4, name, 0, 0, "L")
             pdf.cell(8, 4, str(qty), 0, 0, "C")
-            pdf.cell(17, 4, f"{int(price * qty):,}", 0, 1, "R")
+            pdf.cell(17, 4, f"{int(price * qty):,}".replace(",", "."), 0, 1, "R")
             
         pdf.ln(1)
         pdf.set_x(4)
@@ -664,7 +664,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         # Total
         pdf.set_font(font_main, "B", 9)
         pdf.cell(32, 6, "TOTAL", 0, 0, "R")
-        pdf.cell(18, 6, f"Rp {int(order.get('total', 0)):,}", 0, 1, "R")
+        pdf.cell(18, 6, f"Rp {int(order.get('total', 0)):,}".replace(",", "."), 0, 1, "R")
         
         pdf.ln(2)
         pdf.set_font(font_main, "", 7)
