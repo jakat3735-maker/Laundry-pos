@@ -98,10 +98,6 @@ export default function SignIn() {
               <Text testID="signin-error" style={styles.error}>{error}</Text>
             )}
 
-            <Text style={{ fontSize: 10, color: colors.muted, textAlign: 'center', marginTop: 10 }}>
-              Server: {api.defaults.baseURL}
-            </Text>
-
             <Pressable
               testID="signin-submit-button"
               onPress={onSubmit}

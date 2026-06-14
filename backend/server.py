@@ -516,6 +516,67 @@ async def export_excel(_user=Depends(get_current_user)):
     return StreamingResponse(output, headers=headers, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
+@api.get("/orders/{oid}/pdf")
+async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
+    order = await db.orders.find_one({"id": oid}, {"_id": 0})
+    if not order:
+        raise HTTPException(404, "Order not found")
+
+    # A5 size or similar small format for receipt
+    pdf = FPDF(format='A5') 
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "DIEARMA 3G LAUNDRY", ln=True, align="C")
+    pdf.set_font("Arial", size=10)
+    pdf.cell(0, 6, "Layanan Laundry Profesional", ln=True, align="C")
+    pdf.ln(10)
+    
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(0, 8, f"NOTA PEMESANAN: {order['order_no']}", ln=True)
+    pdf.set_font("Arial", size=10)
+    pdf.cell(0, 6, f"Nama Pelanggan : {order['customer_name']}", ln=True)
+    pdf.cell(0, 6, f"Tanggal Masuk  : {order['created_at'][:10]} {order['created_at'][11:16]}", ln=True)
+    pdf.cell(0, 6, f"Status Pesanan : {order['status'].upper()}", ln=True)
+    pdf.cell(0, 6, f"Pembayaran     : {order['payment_status'].upper()} ({order.get('payment_method') or 'CASH'})", ln=True)
+    pdf.ln(5)
+    
+    # Table Header
+    pdf.set_fill_color(240, 240, 240)
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Layanan", 1, 0, "L", True)
+    pdf.cell(30, 8, "Harga", 1, 0, "C", True)
+    pdf.cell(20, 8, "Qty", 1, 0, "C", True)
+    pdf.cell(30, 8, "Subtotal", 1, 1, "R", True)
+    
+    pdf.set_font("Arial", size=10)
+    for i in order['items']:
+        pdf.cell(60, 8, i['service_name'], 1)
+        pdf.cell(30, 8, f"{int(i['price']):,}", 1, 0, "C")
+        pdf.cell(20, 8, str(i['quantity']), 1, 0, "C")
+        pdf.cell(30, 8, f"{int(i['price'] * i['quantity']):,}", 1, 1, "R")
+        
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(110, 10, "TOTAL HARGA", 1, 0, "R")
+    pdf.cell(30, 10, f"Rp {int(order['total']):,}", 1, 1, "R")
+    
+    pdf.ln(10)
+    pdf.set_font("Arial", "I", 9)
+    if order.get("notes"):
+        pdf.multi_cell(0, 5, f"Catatan: {order['notes']}")
+        pdf.ln(5)
+        
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 6, "Syarat & Ketentuan:", ln=True)
+    pdf.cell(0, 5, "1. Pengambilan barang wajib membawa nota ini.", ln=True)
+    pdf.cell(0, 5, "2. Barang tidak diambil > 1 bulan di luar tanggung jawab kami.", ln=True)
+    pdf.ln(10)
+    pdf.cell(0, 10, "Terima kasih sudah mencuci di tempat kami!", 0, 1, "C")
+
+    pdf_bytes = pdf.output()
+    headers = {'Content-Disposition': f'attachment; filename="nota_{order["order_no"]}.pdf"'}
+    return StreamingResponse(io.BytesIO(pdf_bytes), headers=headers, media_type="application/pdf")
+
+
 # ------------------------ Midtrans ------------------------
 def _midtrans_base() -> str:
     return "https://app.midtrans.com" if MIDTRANS_IS_PRODUCTION else "https://app.sandbox.midtrans.com"

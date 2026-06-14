@@ -22,6 +22,7 @@ export default function NewOrder() {
   const [saving, setSaving] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [qtyText, setQtyText] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     try {
@@ -49,9 +50,32 @@ export default function NewOrder() {
   };
 
   const updateQty = (id: string, delta: number) => {
-    setItems((prev) => prev
-      .map((i) => i.service_id === id ? { ...i, quantity: Math.max(0.5, +(i.quantity + delta).toFixed(1)) } : i)
-    );
+    setItems((prev) => {
+      const next = prev.map((i) => {
+        if (i.service_id === id) {
+          const newQty = Math.max(0.1, +(i.quantity + delta).toFixed(1));
+          setQtyText(t => ({ ...t, [id]: String(newQty) }));
+          return { ...i, quantity: newQty };
+        }
+        return i;
+      });
+      return next;
+    });
+  };
+
+  const manualUpdateQty = (id: string, text: string) => {
+    // Hanya izinkan angka, titik, dan koma
+    if (text !== "" && !/^[0-9]+[.,]?[0-9]*$/.test(text) && !/^[0-9]*[.,][0-9]*$/.test(text)) {
+      if (text === "") setQtyText(t => ({ ...t, [id]: "" }));
+      return;
+    }
+
+    setQtyText(t => ({ ...t, [id]: text }));
+
+    const val = parseFloat(text.replace(",", "."));
+    if (!isNaN(val) && val >= 0) {
+      setItems((prev) => prev.map((i) => i.service_id === id ? { ...i, quantity: val } : i));
+    }
   };
 
   const removeItem = (id: string) => setItems(items.filter((i) => i.service_id !== id));
@@ -139,11 +163,20 @@ export default function NewOrder() {
                     <Text style={styles.itemSub}>{formatIDR(i.price)} × {i.quantity} {i.unit}</Text>
                   </View>
                   <View style={styles.qtyBox}>
-                    <Pressable onPress={() => updateQty(i.service_id, -0.5)} style={styles.qtyBtn}>
+                    <Pressable onPress={() => updateQty(i.service_id, -0.1)} style={styles.qtyBtn}>
                       <Ionicons name="remove" size={16} color={colors.brand} />
                     </Pressable>
-                    <Text style={styles.qtyText}>{i.quantity}</Text>
-                    <Pressable onPress={() => updateQty(i.service_id, +0.5)} style={styles.qtyBtn}>
+                    <TextInput
+                      keyboardType="decimal-pad"
+                      value={qtyText[i.service_id] ?? String(i.quantity)}
+                      onChangeText={(t) => manualUpdateQty(i.service_id, t)}
+                      onBlur={() => {
+                        // Reset text input to normalized number on blur
+                        setQtyText(t => ({ ...t, [i.service_id]: String(i.quantity) }));
+                      }}
+                      style={styles.qtyInput}
+                    />
+                    <Pressable onPress={() => updateQty(i.service_id, +0.1)} style={styles.qtyBtn}>
                       <Ionicons name="add" size={16} color={colors.brand} />
                     </Pressable>
                   </View>
@@ -253,7 +286,7 @@ const styles = StyleSheet.create({
   itemSub: { fontSize: 11, color: colors.muted, marginTop: 2 },
   qtyBox: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   qtyBtn: { width: 28, height: 28, borderRadius: radius.sm, backgroundColor: colors.brandTertiary, alignItems: "center", justifyContent: "center" },
-  qtyText: { minWidth: 30, textAlign: "center", fontSize: 13, fontWeight: "600", color: colors.onSurface },
+  qtyInput: { minWidth: 40, textAlign: "center", fontSize: 13, fontWeight: "600", color: colors.onSurface, paddingVertical: 2, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, backgroundColor: colors.surfaceSecondary },
   notesInput: { marginHorizontal: spacing.lg, padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, minHeight: 70, textAlignVertical: "top", fontSize: 14, color: colors.onSurface },
   bottom: { position: "absolute", bottom: 0, left: 0, right: 0, padding: spacing.lg, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: "row", alignItems: "center", gap: spacing.md },
   totalLabel: { fontSize: 11, color: colors.muted },

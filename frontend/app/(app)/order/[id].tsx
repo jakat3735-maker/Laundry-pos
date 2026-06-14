@@ -1,12 +1,14 @@
 import React, { useCallback, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Share, Modal,
+  View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Share, Modal, Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { WebView } from "react-native-webview";
-import { api } from "../../../src/api/client";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import { api, getAuthToken } from "../../../src/api/client";
 import { useRealtimeEvent } from "../../../src/contexts/RealtimeContext";
 import { colors, spacing, radius, statusColors, formatIDR } from "../../../src/theme";
 
@@ -20,6 +22,7 @@ export default function OrderDetail() {
   const [updating, setUpdating] = useState(false);
   const [snapUrl, setSnapUrl] = useState<string | null>(null);
   const [midtransError, setMidtransError] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -81,6 +84,82 @@ export default function OrderDetail() {
     try { await Share.share({ message: lines.join("\n") }); } catch {}
   };
 
+  const downloadReceipt = async () => {
+    if (Platform.OS === "web") return;
+    setPrinting(true);
+    try {
+      const filename = `nota_${order.order_no}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+      const token = getAuthToken();
+
+      const res = await FileSystem.downloadAsync(
+        `${api.defaults.baseURL}/orders/${order.id}/pdf`,
+        fileUri,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.status === 200) {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        throw new Error("Gagal mendownload nota");
+      }
+    } catch (e) {
+      console.warn(e);
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const printThermal = async () => {
+    if (!order) return;
+    const separator = "--------------------------------"; // 32 chars for 58mm
+    const lines = [
+      "      DIEARMA 3G LAUNDRY",
+      " Layanan Laundry Profesional",
+      separator,
+      `No. Order : ${order.order_no}`,
+      `Pelanggan : ${order.customer_name}`,
+      `Tanggal   : ${order.created_at.substring(0, 10)}`,
+      `Status    : ${order.status.toUpperCase()}`,
+      separator,
+    ];
+
+    order.items.forEach((i: any) => {
+      lines.push(`${i.service_name}`);
+      const qtyPrice = `${i.quantity}${i.unit} x ${formatIDR(i.price).replace("Rp ", "")}`;
+      const subtotal = formatIDR(i.price * i.quantity).replace("Rp ", "");
+      const padding = 32 - qtyPrice.length - subtotal.length;
+      lines.push(`${qtyPrice}${" ".repeat(Math.max(1, padding))}${subtotal}`);
+    });
+
+    lines.push(separator);
+    const totalLabel = "TOTAL HARGA";
+    const totalVal = formatIDR(order.total);
+    const totalPadding = 32 - totalLabel.length - totalVal.length;
+    lines.push(`${totalLabel}${" ".repeat(Math.max(1, totalPadding))}${totalVal}`);
+
+    lines.push("");
+    if (order.notes) {
+      lines.push(`Catatan: ${order.notes}`);
+      lines.push("");
+    }
+    lines.push("      Terima Kasih!");
+    lines.push(" Simpan nota ini sebagai");
+    lines.push("   bukti pengambilan.");
+    lines.push("");
+    lines.push("");
+
+    try {
+      await Share.share({ message: lines.join("\n") });
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
   if (loading || !order) return <View style={styles.center}><ActivityIndicator color={colors.brand} /></View>;
 
   const statusIdx = STATUS_FLOW.indexOf(order.status);
@@ -93,9 +172,29 @@ export default function OrderDetail() {
           <Ionicons name="chevron-back" size={22} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.title}>Detail Order</Text>
-        <Pressable testID="share-btn" onPress={shareReceipt} style={styles.iconBtn}>
-          <Ionicons name="share-outline" size={20} color={colors.brand} />
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <Pressable onPress={printThermal} style={styles.iconBtn}>
+            <Image
+              source={require("../../../assets/images/Print Portable.png")}
+              style={{ width: 24, height: 24 }}
+              resizeMode="contain"
+            />
+          </Pressable>
+          <Pressable onPress={downloadReceipt} disabled={printing} style={styles.iconBtn}>
+            {printing ? (
+              <ActivityIndicator size="small" color={colors.brand} />
+            ) : (
+              <Image
+                source={require("../../../assets/images/Std.png")}
+                style={{ width: 24, height: 24 }}
+                resizeMode="contain"
+              />
+            )}
+          </Pressable>
+          <Pressable testID="share-btn" onPress={shareReceipt} style={styles.iconBtn}>
+            <Ionicons name="share-outline" size={20} color={colors.brand} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}>
