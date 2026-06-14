@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Activity
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { api } from "@/src/api/client";
-import { useAuth } from "@/src/contexts/AuthContext";
-import { useRealtimeEvent, useRealtime } from "@/src/contexts/RealtimeContext";
-import { colors, spacing, radius, statusColors, formatIDR } from "@/src/theme";
+import { api } from "../../src/api/client";
+import { useAuth } from "../../src/contexts/AuthContext";
+import { useRealtimeEvent, useRealtime } from "../../src/contexts/RealtimeContext";
+import { colors, spacing, radius, statusColors, formatIDR } from "../../src/theme";
 
 interface Stats {
   revenue_today: number;
@@ -61,7 +61,7 @@ export default function Dashboard() {
         {/* Header */}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.greet}>Halo, {user?.full_name?.split(" ")[0]}</Text>
+            <Text style={styles.greet}>Halo, {user?.full_name ? user.full_name.split(" ")[0] : "User"}</Text>
             <View style={styles.liveRow}>
               <View style={[styles.liveDot, { backgroundColor: connected ? colors.success : colors.muted }]} />
               <Text style={styles.role}>{user?.role === "owner" ? "Owner" : "Kasir"} • {connected ? "Live tersinkron" : "Mode offline"}</Text>
@@ -83,12 +83,12 @@ export default function Dashboard() {
               <View style={[styles.kpi, { backgroundColor: colors.brand }]} testID="kpi-revenue">
                 <Ionicons name="cash-outline" size={20} color="#fff" />
                 <Text style={styles.kpiLabel}>Pendapatan Hari Ini</Text>
-                <Text style={styles.kpiValue}>{formatIDR(stats?.revenue_today || 0)}</Text>
+                <Text style={styles.kpiValue}>{formatIDR(stats?.revenue_today ?? 0)}</Text>
               </View>
               <View style={[styles.kpi, { backgroundColor: colors.surfaceInverse }]} testID="kpi-orders">
                 <Ionicons name="receipt-outline" size={20} color="#fff" />
                 <Text style={styles.kpiLabel}>Pesanan Hari Ini</Text>
-                <Text style={styles.kpiValue}>{stats?.orders_today || 0}</Text>
+                <Text style={styles.kpiValue}>{stats?.orders_today ?? 0}</Text>
               </View>
             </View>
 
@@ -112,13 +112,13 @@ export default function Dashboard() {
 
             {/* Active orders */}
             <Text style={styles.sectionTitle}>Pesanan Berjalan</Text>
-            {stats?.active_orders.length === 0 ? (
+            {(stats?.active_orders?.length ?? 0) === 0 ? (
               <View style={styles.emptyBox}>
                 <Ionicons name="basket-outline" size={42} color={colors.muted} />
                 <Text style={styles.emptyText}>Belum ada pesanan hari ini</Text>
               </View>
             ) : (
-              stats?.active_orders.map((o) => (
+              stats?.active_orders?.map((o) => (
                 <Pressable
                   key={o.id}
                   testID={`active-order-${o.order_no}`}
@@ -133,11 +133,11 @@ export default function Dashboard() {
                   <View
                     style={[
                       styles.badge,
-                      { backgroundColor: statusColors[o.status]?.bg || colors.brandTertiary },
+                      { backgroundColor: statusColors[o.status as keyof typeof statusColors]?.bg || colors.brandTertiary },
                     ]}
                   >
-                    <Text style={{ color: statusColors[o.status]?.fg, fontSize: 11, fontWeight: "600" }}>
-                      {statusColors[o.status]?.label || o.status}
+                    <Text style={{ color: statusColors[o.status as keyof typeof statusColors]?.fg, fontSize: 11, fontWeight: "600" }}>
+                      {statusColors[o.status as keyof typeof statusColors]?.label || o.status}
                     </Text>
                   </View>
                 </Pressable>

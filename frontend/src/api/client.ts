@@ -1,11 +1,15 @@
 import axios from "axios";
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
-console.log("DEBUG: API Base URL is:", `${BASE}/api`);
+// Hardcoded URL untuk memastikan APK tidak kehilangan alamat server
+const BASE = "https://laundry-pos-production.up.railway.app";
 
 export const api = axios.create({
   baseURL: `${BASE}/api`,
-  timeout: 20000,
+  timeout: 30000, // Menambah timeout jadi 30 detik
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+  }
 });
 
 let _token: string | null = null;

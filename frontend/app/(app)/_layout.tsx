@@ -1,8 +1,8 @@
 import React from "react";
 import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@/src/contexts/AuthContext";
-import { colors } from "@/src/theme";
+import { useAuth } from "../../src/contexts/AuthContext";
+import { colors } from "../../src/theme";
 
 export default function AppLayout() {
   const { user, loading } = useAuth();

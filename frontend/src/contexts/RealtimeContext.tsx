@@ -12,7 +12,7 @@ interface RealtimeCtx {
 const Ctx = createContext<RealtimeCtx | undefined>(undefined);
 
 const buildWsUrl = (token: string) => {
-  const base = process.env.EXPO_PUBLIC_BACKEND_URL || "";
+  const base = "https://laundry-pos-production.up.railway.app";
   const wsBase = base.replace(/^http/, "ws");
   return `${wsBase}/api/ws?token=${encodeURIComponent(token)}`;
 };
@@ -38,14 +38,23 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const connect = () => {
       try {
-        const ws = new WebSocket(buildWsUrl(token));
+        const url = buildWsUrl(token);
+        console.log("DEBUG: Connecting to WS:", url.split('?')[0]);
+        const ws = new WebSocket(url);
         wsRef.current = ws;
 
         ws.onopen = () => {
           setConnected(true);
-          // ping every 30s to keep socket alive
+          console.log("DEBUG: WS Connected");
+          if (pingTimer.current) clearInterval(pingTimer.current);
           pingTimer.current = setInterval(() => {
-            try { ws.send("ping"); } catch {}
+            try {
+              if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                wsRef.current.send("ping");
+              }
+            } catch (err) {
+              console.log("DEBUG: Ping failed", err);
+            }
           }, 30000);
         };
 

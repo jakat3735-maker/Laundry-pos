@@ -6,10 +6,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { api } from "@/src/api/client";
-import { useAuth } from "@/src/contexts/AuthContext";
-import { useRealtimeEvent } from "@/src/contexts/RealtimeContext";
-import { colors, spacing, radius, formatIDR } from "@/src/theme";
+import { api } from "../../src/api/client";
+import { useAuth } from "../../src/contexts/AuthContext";
+import { useRealtimeEvent } from "../../src/contexts/RealtimeContext";
+import { colors, spacing, radius, formatIDR } from "../../src/theme";
 
 const CATS = [
   { id: "reguler", label: "Reguler" },

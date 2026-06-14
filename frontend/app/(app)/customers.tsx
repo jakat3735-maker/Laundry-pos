@@ -6,9 +6,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
-import { api } from "@/src/api/client";
-import { useRealtimeEvent } from "@/src/contexts/RealtimeContext";
-import { colors, spacing, radius } from "@/src/theme";
+import { api } from "../../src/api/client";
+import { useRealtimeEvent } from "../../src/contexts/RealtimeContext";
+import { colors, spacing, radius } from "../../src/theme";
 
 export default function Customers() {
   const [list, setList] = useState<any[]>([]);
@@ -34,14 +34,21 @@ export default function Customers() {
   const openEdit = (c: any) => { setEditing(c); setName(c.name); setPhone(c.phone); setAddress(c.address || ""); setModal(true); };
 
   const save = async () => {
-    if (!name.trim() || !phone.trim()) return;
+    if (saving || !name.trim() || !phone.trim()) return;
     setSaving(true);
     try {
-      if (editing) await api.put(`/customers/${editing.id}`, { name, phone, address });
-      else await api.post("/customers", { name, phone, address });
+      if (editing) {
+        await api.put(`/customers/${editing.id}`, { name, phone, address });
+      } else {
+        await api.post("/customers", { name, phone, address });
+      }
       setModal(false);
-      load();
-    } finally { setSaving(false); }
+      // load() is handled by useRealtimeEvent
+    } catch (e) {
+      console.error("Save customer failed:", e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const del = async (id: string) => {

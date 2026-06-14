@@ -76,12 +76,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       const res = await api.post("/auth/login", { email, password });
+      if (!res.data || !res.data.access_token) {
+        throw new Error("Respons server tidak valid");
+      }
       const { access_token, user: u } = res.data;
       setAuthToken(access_token);
-      await storage.set(TOKEN_KEY, access_token);
-      await storage.set(USER_KEY, JSON.stringify(u));
+
+      try {
+        await storage.set(TOKEN_KEY, access_token);
+        if (u) await storage.set(USER_KEY, JSON.stringify(u));
+      } catch (e) {
+        console.warn("Storage failed", e);
+      }
+
       setToken(access_token);
-      setUser(u);
+      setUser(u || null);
     } catch (error: any) {
       if (error.response) {
         console.log("DEBUG: Login failed with status:", error.response.status);

@@ -6,9 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { WebView } from "react-native-webview";
-import { api } from "@/src/api/client";
-import { useRealtimeEvent } from "@/src/contexts/RealtimeContext";
-import { colors, spacing, radius, statusColors, formatIDR } from "@/src/theme";
+import { api } from "../../../src/api/client";
+import { useRealtimeEvent } from "../../../src/contexts/RealtimeContext";
+import { colors, spacing, radius, statusColors, formatIDR } from "../../../src/theme";
 
 const STATUS_FLOW = ["diterima", "dicuci", "siap", "selesai", "diambil"];
 
@@ -106,9 +106,9 @@ export default function OrderDetail() {
               <Text style={styles.orderNo}>{order.order_no}</Text>
               <Text style={styles.cust}>{order.customer_name}</Text>
             </View>
-            <View style={[styles.badge, { backgroundColor: statusColors[order.status]?.bg }]}>
-              <Text style={{ color: statusColors[order.status]?.fg, fontSize: 11, fontWeight: "600" }}>
-                {statusColors[order.status]?.label}
+            <View style={[styles.badge, { backgroundColor: statusColors[order.status as keyof typeof statusColors]?.bg || colors.brandTertiary }]}>
+              <Text style={{ color: statusColors[order.status as keyof typeof statusColors]?.fg || colors.brand, fontSize: 11, fontWeight: "600" }}>
+                {statusColors[order.status as keyof typeof statusColors]?.label || order.status}
               </Text>
             </View>
           </View>
@@ -123,7 +123,7 @@ export default function OrderDetail() {
                     <View style={[styles.stepLine, done && { backgroundColor: colors.brand }]} />
                   )}
                   <Text style={[styles.stepLabel, done && { color: colors.brand, fontWeight: "600" }]}>
-                    {statusColors[s].label}
+                    {statusColors[s as keyof typeof statusColors]?.label || s}
                   </Text>
                 </View>
               );

@@ -5,9 +5,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
-import { useIconFonts } from "@/src/hooks/use-icon-fonts";
-import { AuthProvider } from "@/src/contexts/AuthContext";
-import { RealtimeProvider } from "@/src/contexts/RealtimeContext";
+import { useIconFonts } from "../src/hooks/use-icon-fonts";
+import { AuthProvider } from "../src/contexts/AuthContext";
+import { RealtimeProvider } from "../src/contexts/RealtimeContext";
 
 SplashScreen.preventAutoHideAsync();
 

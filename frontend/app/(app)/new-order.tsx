@@ -5,9 +5,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { api } from "@/src/api/client";
-import { colors, spacing, radius, formatIDR } from "@/src/theme";
+import { useFocusEffect, useRouter } from "expo-router";
+import { api } from "../../src/api/client";
+import { colors, spacing, radius, formatIDR } from "../../src/theme";
 
 interface Item { service_id: string; service_name: string; price: number; unit: string; quantity: number; }
 
@@ -23,13 +23,21 @@ export default function NewOrder() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    (async () => {
+  const loadData = useCallback(async () => {
+    try {
       const [s, c] = await Promise.all([api.get("/services"), api.get("/customers")]);
-      setServices(s.data); setCustomers(c.data);
+      setServices(s.data);
+      setCustomers(c.data);
+    } catch (e) {
+      console.warn("Failed to load data for order:", e);
+    } finally {
       setLoading(false);
-    })();
+    }
   }, []);
+
+  useFocusEffect(useCallback(() => {
+    loadData();
+  }, [loadData]));
 
   const addItem = (svc: any) => {
     const exists = items.find((i) => i.service_id === svc.id);
@@ -68,9 +76,12 @@ export default function NewOrder() {
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.brand} /></View>;
 
-  const filteredCustomers = customers.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search)
-  );
+  const filteredCustomers = (customers || []).filter(c => {
+    const n = (c.name || "").toLowerCase();
+    const p = (c.phone || "");
+    const q = search.toLowerCase();
+    return n.includes(q) || p.includes(q);
+  });
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]} testID="new-order-screen">

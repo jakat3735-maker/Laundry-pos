@@ -6,9 +6,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter, Redirect } from "expo-router";
-import { api } from "@/src/api/client";
-import { useAuth } from "@/src/contexts/AuthContext";
-import { colors, spacing, radius } from "@/src/theme";
+import { api } from "../../src/api/client";
+import { useAuth } from "../../src/contexts/AuthContext";
+import { colors, spacing, radius } from "../../src/theme";
 
 export default function Users() {
   const router = useRouter();

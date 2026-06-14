@@ -9,13 +9,15 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "@/src/contexts/AuthContext";
-import { colors, spacing, radius } from "@/src/theme";
+import { useAuth } from "../src/contexts/AuthContext";
+import { colors, spacing, radius } from "../src/theme";
+import { api } from "../src/api/client";
 
 export default function SignIn() {
   const router = useRouter();
@@ -32,7 +34,9 @@ export default function SignIn() {
       await signIn(email.trim(), password);
       router.replace("/(app)/dashboard");
     } catch (e: any) {
-      setError(e?.response?.data?.detail || "Login gagal. Cek email/password.");
+      const msg = e?.response?.data?.detail || e?.message || "Login gagal";
+      setError(`Error: ${msg}`);
+      console.log("Login Error:", e);
     } finally {
       setLoading(false);
     }
@@ -50,9 +54,13 @@ export default function SignIn() {
             style={styles.hero}
           >
             <View style={styles.logoBox}>
-              <Ionicons name="water" size={42} color={colors.brand} />
+              <Image
+                source={require("../assets/images/icon.png")}
+                style={{ width: 60, height: 60, borderRadius: radius.md }}
+                resizeMode="contain"
+              />
             </View>
-            <Text style={styles.title}>Laundry POS</Text>
+            <Text style={styles.title}>3G Diearma Laundry</Text>
             <Text style={styles.subtitle}>Kelola usaha laundry Anda dengan mudah</Text>
           </LinearGradient>
 
@@ -64,7 +72,7 @@ export default function SignIn() {
                 testID="signin-email-input"
                 value={email}
                 onChangeText={setEmail}
-                placeholder="email@laundry.com"
+                placeholder="email@.com"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 keyboardType="email-address"
@@ -89,6 +97,10 @@ export default function SignIn() {
             {error && (
               <Text testID="signin-error" style={styles.error}>{error}</Text>
             )}
+
+            <Text style={{ fontSize: 10, color: colors.muted, textAlign: 'center', marginTop: 10 }}>
+              Server: {api.defaults.baseURL}
+            </Text>
 
             <Pressable
               testID="signin-submit-button"

@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, ScrollView, Pressable, FlatList, ActivityIndica
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { api } from "@/src/api/client";
-import { useRealtimeEvent } from "@/src/contexts/RealtimeContext";
-import { colors, spacing, radius, statusColors, formatIDR } from "@/src/theme";
+import { api } from "../../src/api/client";
+import { useRealtimeEvent } from "../../src/contexts/RealtimeContext";
+import { colors, spacing, radius, statusColors, formatIDR } from "../../src/theme";
 
 const FILTERS = [
   { id: "semua", label: "Semua" },
@@ -101,9 +101,9 @@ export default function Orders() {
               <View style={{ flex: 1 }}>
                 <View style={styles.rowBetween}>
                   <Text style={styles.orderNo}>{item.order_no}</Text>
-                  <View style={[styles.badge, { backgroundColor: statusColors[item.status]?.bg }]}>
-                    <Text style={{ color: statusColors[item.status]?.fg, fontSize: 11, fontWeight: "600" }}>
-                      {statusColors[item.status]?.label}
+                  <View style={[styles.badge, { backgroundColor: statusColors[item.status as keyof typeof statusColors]?.bg || colors.brandTertiary }]}>
+                    <Text style={{ color: statusColors[item.status as keyof typeof statusColors]?.fg, fontSize: 11, fontWeight: "600" }}>
+                      {statusColors[item.status as keyof typeof statusColors]?.label || item.status}
                     </Text>
                   </View>
                 </View>

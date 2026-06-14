@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useAuth } from "@/src/contexts/AuthContext";
-import { colors, spacing, radius } from "@/src/theme";
+import { useAuth } from "../../src/contexts/AuthContext";
+import { colors, spacing, radius } from "../../src/theme";
 
 export default function More() {
   const router = useRouter();

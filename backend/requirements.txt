@@ -20,6 +20,8 @@ dnspython==2.8.0
 ecdsa==0.19.2
 email-validator==2.3.0
 # litellm removed as it was pointing to emergent URL and not used in server.py
+fpdf2==2.8.7
+openpyxl==3.1.5
 fastapi==0.110.1
 fastuuid==0.14.0
 filelock==3.29.1

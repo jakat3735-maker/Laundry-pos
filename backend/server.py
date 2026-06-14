@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -12,6 +13,9 @@ import bcrypt
 import jwt
 import httpx
 import asyncio
+import io
+import pandas as pd
+from fpdf import FPDF
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Literal, Set
@@ -446,6 +450,70 @@ async def dashboard_stats(_user=Depends(get_current_user)):
         "by_status": by_status,
         "active_orders": [Order(**o).dict() for o in all_orders if o["status"] in ("diterima", "dicuci", "siap")][:10],
     }
+
+
+# ------------------------ Reports Export ------------------------
+@api.get("/reports/pdf")
+async def export_pdf(_user=Depends(get_current_user)):
+    orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Laporan Pesanan Laundry", ln=True, align="C")
+    pdf.set_font("Arial", size=10)
+    pdf.cell(0, 10, f"Dicetak pada: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
+    pdf.ln(10)
+    
+    # Table Header
+    pdf.set_fill_color(200, 220, 255)
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(35, 10, "No. Order", 1, 0, "C", True)
+    pdf.cell(45, 10, "Pelanggan", 1, 0, "C", True)
+    pdf.cell(30, 10, "Tanggal", 1, 0, "C", True)
+    pdf.cell(25, 10, "Status", 1, 0, "C", True)
+    pdf.cell(25, 10, "Bayar", 1, 0, "C", True)
+    pdf.cell(30, 10, "Total", 1, 1, "C", True)
+    
+    pdf.set_font("Arial", size=8)
+    for o in orders:
+        dt = o["created_at"][:10]
+        pdf.cell(35, 8, o["order_no"], 1)
+        pdf.cell(45, 8, o["customer_name"][:25], 1)
+        pdf.cell(30, 8, dt, 1, 0, "C")
+        pdf.cell(25, 8, o["status"], 1, 0, "C")
+        pdf.cell(25, 8, o["payment_status"], 1, 0, "C")
+        pdf.cell(30, 8, f"Rp {int(o['total']):,}", 1, 1, "R")
+        
+    pdf_bytes = pdf.output()
+    
+    headers = {
+        'Content-Disposition': 'attachment; filename="laporan_laundry.pdf"'
+    }
+    return StreamingResponse(io.BytesIO(pdf_bytes), headers=headers, media_type="application/pdf")
+
+
+@api.get("/reports/excel")
+async def export_excel(_user=Depends(get_current_user)):
+    orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    df = pd.DataFrame(orders)
+    
+    # Clean up for Excel
+    if not df.empty:
+        cols = ["order_no", "customer_name", "created_at", "status", "payment_status", "total"]
+        df = df[cols]
+        df.columns = ["No. Order", "Pelanggan", "Tanggal", "Status Pesanan", "Status Bayar", "Total Harga"]
+        df["Tanggal"] = df["Tanggal"].apply(lambda x: x[:10])
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Laporan")
+    
+    output.seek(0)
+    headers = {
+        'Content-Disposition': 'attachment; filename="laporan_laundry.xlsx"'
+    }
+    return StreamingResponse(output, headers=headers, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 # ------------------------ Midtrans ------------------------

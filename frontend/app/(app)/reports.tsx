@@ -1,17 +1,20 @@
 import React, { useCallback, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { api } from "@/src/api/client";
-import { useRealtimeEvent } from "@/src/contexts/RealtimeContext";
-import { colors, spacing, radius, statusColors, formatIDR } from "@/src/theme";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import { api, getAuthToken } from "../../src/api/client";
+import { useRealtimeEvent } from "../../src/contexts/RealtimeContext";
+import { colors, spacing, radius, statusColors, formatIDR } from "../../src/theme";
 
 export default function Reports() {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -26,6 +29,40 @@ export default function Reports() {
   const paidOrders = orders.filter((o) => o.payment_status === "paid");
   const unpaidOrders = orders.filter((o) => o.payment_status === "unpaid");
   const unpaidTotal = unpaidOrders.reduce((s, o) => s + o.total, 0);
+
+  const downloadReport = async (type: "pdf" | "excel") => {
+    if (Platform.OS === "web") {
+      Alert.alert("Info", "Download tidak tersedia di versi web. Gunakan aplikasi mobile.");
+      return;
+    }
+
+    setDownloading(type);
+    try {
+      const filename = `laporan_laundry_${new Date().getTime()}.${type === "pdf" ? "pdf" : "xlsx"}`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+      const token = getAuthToken();
+
+      const res = await FileSystem.downloadAsync(
+        `${api.defaults.baseURL}/reports/${type}`,
+        fileUri,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.status === 200) {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        throw new Error(`Gagal mendownload (${res.status})`);
+      }
+    } catch (e: any) {
+      Alert.alert("Gagal", e.message || "Gagal mendownload laporan");
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]} testID="reports-screen">
@@ -74,6 +111,39 @@ export default function Reports() {
             </View>
           </View>
 
+          {/* Export Buttons */}
+          <Text style={styles.sectionTitle}>Ekspor Laporan</Text>
+          <View style={styles.exportRow}>
+            <Pressable
+              onPress={() => downloadReport("pdf")}
+              disabled={!!downloading}
+              style={[styles.exportBtn, { backgroundColor: "#F87171" }]}
+            >
+              {downloading === "pdf" ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="file-tray-full-outline" size={18} color="#fff" />
+                  <Text style={styles.exportText}>Download PDF</Text>
+                </>
+              )}
+            </Pressable>
+            <Pressable
+              onPress={() => downloadReport("excel")}
+              disabled={!!downloading}
+              style={[styles.exportBtn, { backgroundColor: "#34D399" }]}
+            >
+              {downloading === "excel" ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="document-text-outline" size={18} color="#fff" />
+                  <Text style={styles.exportText}>Download Excel</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+
           {/* Status breakdown */}
           <Text style={styles.sectionTitle}>Distribusi Status</Text>
           <View style={styles.statusCard}>
@@ -81,16 +151,16 @@ export default function Reports() {
               <Text style={{ textAlign: "center", color: colors.muted, padding: spacing.lg }}>Belum ada data</Text>
             ) : (
               Object.entries(stats.by_status).map(([k, v]: any) => {
-                const max = Math.max(...Object.values(stats.by_status).map(Number));
+                const max = Math.max(...Object.values(stats.by_status || {}).map(Number));
                 const pct = max > 0 ? (v / max) * 100 : 0;
                 return (
                   <View key={k} style={styles.statusItem}>
                     <View style={styles.statusLabelRow}>
-                      <Text style={styles.statusName}>{statusColors[k]?.label || k}</Text>
+                      <Text style={styles.statusName}>{statusColors[k as keyof typeof statusColors]?.label || k}</Text>
                       <Text style={styles.statusCount}>{v}</Text>
                     </View>
                     <View style={styles.barBg}>
-                      <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: statusColors[k]?.fg || colors.brand }]} />
+                      <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: statusColors[k as keyof typeof statusColors]?.fg || colors.brand }]} />
                     </View>
                   </View>
                 );
@@ -127,4 +197,7 @@ const styles = StyleSheet.create({
   statusCount: { fontSize: 13, color: colors.onSurfaceSecondary, fontWeight: "600" },
   barBg: { height: 8, backgroundColor: colors.surfaceTertiary, borderRadius: radius.pill, overflow: "hidden" },
   barFill: { height: "100%", borderRadius: radius.pill },
+  exportRow: { flexDirection: "row", gap: spacing.md },
+  exportBtn: { flex: 1, height: 44, borderRadius: radius.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm },
+  exportText: { color: "#fff", fontWeight: "600", fontSize: 13 },
 });
