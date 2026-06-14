@@ -594,9 +594,9 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
     h = 120 + (len(order['items']) * 15)
     pdf = FPDF(format=(58, h), unit='mm')
     pdf.add_page()
-    pdf.set_margin(4)
+    pdf.set_margin(2)
     
-    line_sep = "------------------------------------------"
+    line_sep = "----------------------------------------------------"
     
     pdf.set_font("Arial", "B", 10)
     pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
