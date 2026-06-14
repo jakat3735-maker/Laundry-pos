@@ -601,14 +601,15 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.set_font("Arial", "", 7)
     pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
     pdf.set_font("Courier", "", 8)
-    pdf.cell(0, 4, "---------------------------------", ln=1, align="C")
+    # Gunakan multi_cell untuk garis agar pasti di tengah walau lebar kertas kecil
+    pdf.multi_cell(0, 4, "---------------------------------", align="C")
     
     pdf.set_font("Arial", "", 8)
     pdf.cell(0, 4, f"No: {order['order_no']}", ln=1)
     pdf.cell(0, 4, f"Plg: {order['customer_name']}", ln=1)
     pdf.cell(0, 4, f"Tgl: {order['created_at'][:10]} {order['created_at'][11:16]}", ln=1)
     pdf.set_font("Courier", "", 8)
-    pdf.cell(0, 4, "---------------------------------", ln=1, align="C")
+    pdf.multi_cell(0, 4, "---------------------------------", align="C")
     
     # Table Header
     pdf.set_font("Arial", "B", 8)
