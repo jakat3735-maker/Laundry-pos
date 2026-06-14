@@ -543,20 +543,20 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     # Table Header
     pdf.set_fill_color(240, 240, 240)
     pdf.set_font("Arial", "B", 10)
-    pdf.cell(60, 8, "Layanan", 1, 0, "L", True)
-    pdf.cell(30, 8, "Harga", 1, 0, "C", True)
+    pdf.cell(50, 8, "Layanan", 1, 0, "L", True)
+    pdf.cell(28, 8, "Harga", 1, 0, "C", True)
     pdf.cell(20, 8, "Qty", 1, 0, "C", True)
     pdf.cell(30, 8, "Subtotal", 1, 1, "R", True)
     
     pdf.set_font("Arial", size=10)
     for i in order['items']:
-        pdf.cell(60, 8, i['service_name'], 1)
-        pdf.cell(30, 8, f"{int(i['price']):,}", 1, 0, "C")
+        pdf.cell(50, 8, i['service_name'], 1)
+        pdf.cell(28, 8, f"{int(i['price']):,}", 1, 0, "C")
         pdf.cell(20, 8, str(i['quantity']), 1, 0, "C")
         pdf.cell(30, 8, f"{int(i['price'] * i['quantity']):,}", 1, 1, "R")
         
     pdf.set_font("Arial", "B", 11)
-    pdf.cell(110, 10, "TOTAL HARGA", 1, 0, "R")
+    pdf.cell(98, 10, "TOTAL HARGA", 1, 0, "R")
     pdf.cell(30, 10, f"Rp {int(order['total']):,}", 1, 1, "R")
     
     pdf.ln(10)
