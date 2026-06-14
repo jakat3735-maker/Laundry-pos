@@ -594,8 +594,9 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         # Thermal 58mm width
         items = order.get('items', [])
         items_count = len(items)
-        # Estimasi tinggi: Header + Items + Footer
-        calculated_h = 100 + (items_count * 12)
+        # Estimasi tinggi yang lebih akurat: 
+        # Header (~45mm) + Items (~8mm/item) + Footer (~35mm)
+        calculated_h = 80 + (items_count * 8)
         
         # Inisialisasi PDF dengan penanganan error pada format
         try:
