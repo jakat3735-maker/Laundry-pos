@@ -551,8 +551,8 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     raw_dt = c_at[:10]
     dt_formatted = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}"
     # Extract time safely (HH:MM)
-    time_part = c_at[11:16]
-    pdf.cell(0, 6, f": {dt_formatted} {time_part}", ln=True)
+    t_part = c_at[11:16] if len(c_at) >= 16 else "--:--"
+    pdf.cell(0, 6, f": {dt_formatted} {t_part}", ln=True)
     pdf.cell(label_w, 6, "Status Pesanan")
     pdf.cell(0, 6, f": {order['status'].upper()}", ln=True)
     pdf.cell(label_w, 6, "Pembayaran")
@@ -646,9 +646,9 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         raw_dt = created_at[:10] if created_at else "00-00-0000"
         # Convert YYYY-MM-DD to DD-MM-YYYY
         date_str = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}" if created_at else "-"
-        time_str = created_at[11:16] if len(created_at) >= 16 else ""
+        t_str = created_at[11:16] if len(created_at) >= 16 else "--:--"
         pdf.set_x(4)
-        pdf.cell(0, 4, f"Time: {date_str} {time_part if 'time_part' in locals() else time_str}", ln=1)
+        pdf.cell(0, 4, f"Time: {date_str} {t_str}", ln=1)
         
         pdf.ln(1)
         pdf.set_x(4)
