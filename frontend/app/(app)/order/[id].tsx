@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Share, Modal, Image,
+  View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Share, Modal, Image, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -85,7 +85,10 @@ export default function OrderDetail() {
   };
 
   const downloadReceipt = async () => {
-    if (Platform.OS === "web") return;
+    if (Platform.OS === "web") {
+      Alert.alert("Info", "Download tidak tersedia di versi web.");
+      return;
+    }
     setPrinting(true);
     try {
       const filename = `nota_${order.order_no}.pdf`;
@@ -105,58 +108,45 @@ export default function OrderDetail() {
       if (res.status === 200) {
         await Sharing.shareAsync(fileUri);
       } else {
-        throw new Error("Gagal mendownload nota");
+        throw new Error(`Gagal mendownload nota (${res.status})`);
       }
-    } catch (e) {
-      console.warn(e);
+    } catch (e: any) {
+      Alert.alert("Gagal", e.message || "Gagal mendownload nota");
     } finally {
       setPrinting(false);
     }
   };
 
   const printThermal = async () => {
-    if (!order) return;
-    const separator = "--------------------------------"; // 32 chars for 58mm
-    const lines = [
-      "      DIEARMA 3G LAUNDRY",
-      " Layanan Laundry Profesional",
-      separator,
-      `No. Order : ${order.order_no}`,
-      `Pelanggan : ${order.customer_name}`,
-      `Tanggal   : ${order.created_at.substring(0, 10)}`,
-      `Status    : ${order.status.toUpperCase()}`,
-      separator,
-    ];
-
-    order.items.forEach((i: any) => {
-      lines.push(`${i.service_name}`);
-      const qtyPrice = `${i.quantity}${i.unit} x ${formatIDR(i.price).replace("Rp ", "")}`;
-      const subtotal = formatIDR(i.price * i.quantity).replace("Rp ", "");
-      const padding = 32 - qtyPrice.length - subtotal.length;
-      lines.push(`${qtyPrice}${" ".repeat(Math.max(1, padding))}${subtotal}`);
-    });
-
-    lines.push(separator);
-    const totalLabel = "TOTAL HARGA";
-    const totalVal = formatIDR(order.total);
-    const totalPadding = 32 - totalLabel.length - totalVal.length;
-    lines.push(`${totalLabel}${" ".repeat(Math.max(1, totalPadding))}${totalVal}`);
-
-    lines.push("");
-    if (order.notes) {
-      lines.push(`Catatan: ${order.notes}`);
-      lines.push("");
+    if (Platform.OS === "web") {
+      Alert.alert("Info", "Download tidak tersedia di versi web.");
+      return;
     }
-    lines.push("      Terima Kasih!");
-    lines.push(" Simpan nota ini sebagai");
-    lines.push("   bukti pengambilan.");
-    lines.push("");
-    lines.push("");
-
+    setPrinting(true);
     try {
-      await Share.share({ message: lines.join("\n") });
-    } catch (e) {
-      console.warn(e);
+      const filename = `thermal_${order.order_no}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+      const token = getAuthToken();
+
+      const res = await FileSystem.downloadAsync(
+        `${api.defaults.baseURL}/orders/${order.id}/pdf-thermal`,
+        fileUri,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.status === 200) {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        throw new Error(`Gagal mendownload nota thermal (${res.status})`);
+      }
+    } catch (e: any) {
+      Alert.alert("Gagal", e.message || "Gagal mendownload nota thermal");
+    } finally {
+      setPrinting(false);
     }
   };
 
@@ -173,12 +163,16 @@ export default function OrderDetail() {
         </Pressable>
         <Text style={styles.title}>Detail Order</Text>
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
-          <Pressable onPress={printThermal} style={styles.iconBtn}>
-            <Image
-              source={require("../../../assets/images/Print Portable.png")}
-              style={{ width: 24, height: 24 }}
-              resizeMode="contain"
-            />
+          <Pressable onPress={printThermal} disabled={printing} style={styles.iconBtn}>
+            {printing ? (
+              <ActivityIndicator size="small" color={colors.brand} />
+            ) : (
+              <Image
+                source={require("../../../assets/images/Print Portable.png")}
+                style={{ width: 24, height: 24 }}
+                resizeMode="contain"
+              />
+            )}
           </Pressable>
           <Pressable onPress={downloadReceipt} disabled={printing} style={styles.iconBtn}>
             {printing ? (
