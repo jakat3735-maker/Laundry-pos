@@ -585,66 +585,81 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
 
 @api.get("/orders/{oid}/pdf-thermal")
 async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
-    order = await db.orders.find_one({"id": oid}, {"_id": 0})
-    if not order:
-        raise HTTPException(404, "Order not found")
+    try:
+        order = await db.orders.find_one({"id": oid}, {"_id": 0})
+        if not order:
+            raise HTTPException(404, "Order not found")
 
-    # Thermal 58mm width (approx 48mm printable)
-    # Height is dynamic based on items, let's estimate
-    h = 120 + (len(order['items']) * 15)
-    pdf = FPDF(format=(58, h), unit='mm')
-    pdf.add_page()
-    pdf.set_margin(5)
-    
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
-    pdf.set_font("Arial", "", 7)
-    pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
-    pdf.set_font("Courier", "", 8)
-    # Gunakan multi_cell untuk garis agar pasti di tengah walau lebar kertas kecil
-    pdf.multi_cell(0, 4, "---------------------------------", align="C")
-    
-    pdf.set_font("Arial", "", 8)
-    pdf.cell(0, 4, f"No: {order['order_no']}", ln=1)
-    pdf.cell(0, 4, f"Plg: {order['customer_name']}", ln=1)
-    date_str = order['created_at'][:10]
-    time_str = order['created_at'][11:16] if len(order['created_at']) >= 16 else ""
-    pdf.cell(0, 4, f"Tgl: {date_str} {time_str}", ln=1)
-    pdf.set_font("Courier", "", 8)
-    pdf.multi_cell(0, 4, "---------------------------------", align="C")
-    
-    # Table Header
-    pdf.set_font("Arial", "B", 8)
-    pdf.cell(24, 5, "Layanan", 0, 0, "L")
-    pdf.cell(8, 5, "Qty", 0, 0, "C")
-    pdf.cell(16, 5, "Total", 0, 1, "R")
-    
-    pdf.set_font("Arial", "", 8)
-    for i in order['items']:
-        # Service name might wrap, let's keep it simple or truncate
-        name = i['service_name'][:15]
-        pdf.cell(24, 4, name, 0, 0, "L")
-        pdf.cell(8, 4, str(i['quantity']), 0, 0, "C")
-        pdf.cell(16, 4, f"{int(i['price'] * i['quantity']):,}", 0, 1, "R")
+        # Thermal 58mm width
+        # Estimasi tinggi dinamis: Header (60) + Items (len * 10) + Footer (40)
+        items_count = len(order.get('items', []))
+        h = 100 + (items_count * 12)
         
-    pdf.set_font("Courier", "", 8)
-    pdf.multi_cell(0, 4, "---------------------------------", align="C")
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(32, 6, "TOTAL", 0, 0, "R")
-    pdf.cell(16, 6, f"{int(order['total']):,}", 0, 1, "R")
-    
-    pdf.ln(2)
-    pdf.set_font("Arial", "", 7)
-    if order.get("notes"):
-        pdf.multi_cell(0, 3, f"Cat: {order['notes']}")
+        pdf = FPDF(unit='mm', format=(58, h))
+        pdf.add_page()
+        pdf.set_margins(left=4, top=4, right=4)
+        
+        # Header
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
+        pdf.set_font("Helvetica", "", 7)
+        pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
+        
+        pdf.set_font("Courier", "", 8)
+        pdf.multi_cell(0, 4, "---------------------------------", align="C")
+        
+        # Info Order
+        pdf.set_font("Helvetica", "", 8)
+        pdf.cell(0, 4, f"No: {order['order_no']}", ln=1)
+        pdf.cell(0, 4, f"Plg: {order['customer_name'][:20]}", ln=1)
+        
+        created_at = order.get('created_at', "")
+        date_str = created_at[:10]
+        time_str = created_at[11:16] if len(created_at) >= 16 else ""
+        pdf.cell(0, 4, f"Tgl: {date_str} {time_str}", ln=1)
+        
+        pdf.set_font("Courier", "", 8)
+        pdf.multi_cell(0, 4, "---------------------------------", align="C")
+        
+        # Table Items
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.cell(25, 5, "Layanan", 0, 0, "L")
+        pdf.cell(8, 5, "Qty", 0, 0, "C")
+        pdf.cell(17, 5, "Total", 0, 1, "R")
+        
+        pdf.set_font("Helvetica", "", 8)
+        for i in order.get('items', []):
+            name = i.get('service_name', 'Item')[:15]
+            qty = i.get('quantity', 0)
+            price = i.get('price', 0)
+            pdf.cell(25, 4, name, 0, 0, "L")
+            pdf.cell(8, 4, str(qty), 0, 0, "C")
+            pdf.cell(17, 4, f"{int(price * qty):,}", 0, 1, "R")
+            
+        pdf.set_font("Courier", "", 8)
+        pdf.multi_cell(0, 4, "---------------------------------", align="C")
+        
+        # Total
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(32, 6, "TOTAL", 0, 0, "R")
+        pdf.cell(18, 6, f"Rp {int(order.get('total', 0)):,}", 0, 1, "R")
+        
         pdf.ln(2)
-        
-    pdf.cell(0, 4, "Terima kasih :)", 0, 1, "C")
-    pdf.cell(0, 4, "Bawa nota saat ambil barang.", 0, 1, "C")
+        pdf.set_font("Helvetica", "", 7)
+        if order.get("notes"):
+            pdf.multi_cell(0, 3, f"Cat: {order['notes']}", align="L")
+            pdf.ln(2)
+            
+        pdf.cell(0, 4, "Terima kasih :)", ln=1, align="C")
+        pdf.cell(0, 4, "Bawa nota saat ambil barang.", ln=1, align="C")
 
-    pdf_bytes = pdf.output()
-    headers = {'Content-Disposition': f'attachment; filename="thermal_{order["order_no"]}.pdf"'}
-    return StreamingResponse(io.BytesIO(pdf_bytes), headers=headers, media_type="application/pdf")
+        pdf_bytes = pdf.output()
+        headers = {'Content-Disposition': f'attachment; filename="thermal_{order["order_no"]}.pdf"'}
+        return StreamingResponse(io.BytesIO(pdf_bytes), headers=headers, media_type="application/pdf")
+        
+    except Exception as e:
+        logger.error(f"Thermal PDF Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Gagal generate PDF: {str(e)}")
 
 
 # ------------------------ Midtrans ------------------------
