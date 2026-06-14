@@ -600,13 +600,15 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
     pdf.set_font("Arial", "", 7)
     pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
-    pdf.cell(0, 2, "-"*30, ln=1, align="C")
+    pdf.set_font("Courier", "", 8)
+    pdf.cell(0, 2, "----------------------------------", ln=1, align="C")
     
     pdf.set_font("Arial", "", 8)
     pdf.cell(0, 4, f"No: {order['order_no']}", ln=1)
     pdf.cell(0, 4, f"Plg: {order['customer_name']}", ln=1)
     pdf.cell(0, 4, f"Tgl: {order['created_at'][:10]} {order['created_at'][11:16]}", ln=1)
-    pdf.cell(0, 2, "-"*30, ln=1, align="C")
+    pdf.set_font("Courier", "", 8)
+    pdf.cell(0, 2, "----------------------------------", ln=1, align="C")
     
     # Table Header
     pdf.set_font("Arial", "B", 8)
@@ -622,7 +624,8 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.cell(8, 4, str(i['quantity']), 0, 0, "C")
         pdf.cell(16, 4, f"{int(i['price'] * i['quantity']):,}", 0, 1, "R")
         
-    pdf.cell(0, 2, "-"*30, ln=1, align="C")
+    pdf.set_font("Courier", "", 8)
+    pdf.cell(0, 2, "----------------------------------", ln=1, align="C")
     pdf.set_font("Arial", "B", 9)
     pdf.cell(32, 6, "TOTAL", 0, 0, "R")
     pdf.cell(16, 6, f"{int(order['total']):,}", 0, 1, "R")
