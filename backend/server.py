@@ -534,10 +534,16 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.set_font("Arial", "B", 10)
     pdf.cell(0, 8, f"NOTA PEMESANAN: {order['order_no']}", ln=True)
     pdf.set_font("Arial", size=10)
-    pdf.cell(0, 6, f"Nama Pelanggan : {order['customer_name']}", ln=True)
-    pdf.cell(0, 6, f"Tanggal Masuk  : {order['created_at'][:10]} {order['created_at'][11:16]}", ln=True)
-    pdf.cell(0, 6, f"Status Pesanan : {order['status'].upper()}", ln=True)
-    pdf.cell(0, 6, f"Pembayaran     : {order['payment_status'].upper()} ({order.get('payment_method') or 'CASH'})", ln=True)
+    
+    label_w = 38
+    pdf.cell(label_w, 6, "Nama Pelanggan")
+    pdf.cell(0, 6, f": {order['customer_name']}", ln=True)
+    pdf.cell(label_w, 6, "Tanggal Pemesanan")
+    pdf.cell(0, 6, f": {order['created_at'][:10]} {order['created_at'][11:16]}", ln=True)
+    pdf.cell(label_w, 6, "Status Pesanan")
+    pdf.cell(0, 6, f": {order['status'].upper()}", ln=True)
+    pdf.cell(label_w, 6, "Pembayaran")
+    pdf.cell(0, 6, f": {order['payment_status'].upper()} ({order.get('payment_method') or 'CASH'})", ln=True)
     pdf.ln(5)
     
     # Table Header
