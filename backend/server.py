@@ -591,71 +591,91 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
             raise HTTPException(404, "Order not found")
 
         # Thermal 58mm width
-        # Estimasi tinggi dinamis: Header (60) + Items (len * 10) + Footer (40)
-        items_count = len(order.get('items', []))
-        h = 100 + (items_count * 12)
+        items = order.get('items', [])
+        items_count = len(items)
+        # Estimasi tinggi: Header + Items + Footer
+        calculated_h = 100 + (items_count * 12)
         
-        pdf = FPDF(unit='mm', format=(58, h))
+        # Inisialisasi PDF dengan penanganan error pada format
+        try:
+            pdf = FPDF(unit='mm', format=(58, calculated_h))
+        except Exception:
+            pdf = FPDF(unit='mm', format='A4') # Fallback jika format kustom gagal
+            
         pdf.add_page()
-        pdf.set_margins(left=4, top=4, right=4)
+        pdf.set_auto_page_break(False) # Hindari page break otomatis pada thermal
+        pdf.set_margins(4, 4, 4)
+        
+        # Gunakan font standar 'helvetica' (lowercase sering lebih aman di beberapa versi fpdf)
+        font_main = "helvetica"
         
         # Header
-        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_font(font_main, "B", 10)
         pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
-        pdf.set_font("Helvetica", "", 7)
+        pdf.set_font(font_main, "", 7)
         pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
         
-        pdf.set_font("Courier", "", 8)
-        pdf.multi_cell(0, 4, "---------------------------------", align="C")
+        pdf.set_font("courier", "", 8)
+        pdf.cell(0, 4, "---------------------------------", ln=1, align="C")
         
         # Info Order
-        pdf.set_font("Helvetica", "", 8)
-        pdf.cell(0, 4, f"No: {order['order_no']}", ln=1)
-        pdf.cell(0, 4, f"Plg: {order['customer_name'][:20]}", ln=1)
+        pdf.set_font(font_main, "", 8)
+        pdf.cell(0, 4, f"No: {order.get('order_no', '-')}", ln=1)
+        pdf.cell(0, 4, f"Plg: {str(order.get('customer_name', '-'))[:20]}", ln=1)
         
         created_at = order.get('created_at', "")
-        date_str = created_at[:10]
+        date_str = created_at[:10] if created_at else "-"
         time_str = created_at[11:16] if len(created_at) >= 16 else ""
         pdf.cell(0, 4, f"Tgl: {date_str} {time_str}", ln=1)
         
-        pdf.set_font("Courier", "", 8)
-        pdf.multi_cell(0, 4, "---------------------------------", align="C")
+        pdf.set_font("courier", "", 8)
+        pdf.cell(0, 4, "---------------------------------", ln=1, align="C")
         
         # Table Items
-        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_font(font_main, "B", 8)
         pdf.cell(25, 5, "Layanan", 0, 0, "L")
         pdf.cell(8, 5, "Qty", 0, 0, "C")
         pdf.cell(17, 5, "Total", 0, 1, "R")
         
-        pdf.set_font("Helvetica", "", 8)
-        for i in order.get('items', []):
-            name = i.get('service_name', 'Item')[:15]
+        pdf.set_font(font_main, "", 8)
+        for i in items:
+            name = str(i.get('service_name', 'Item'))[:15]
             qty = i.get('quantity', 0)
             price = i.get('price', 0)
             pdf.cell(25, 4, name, 0, 0, "L")
             pdf.cell(8, 4, str(qty), 0, 0, "C")
             pdf.cell(17, 4, f"{int(price * qty):,}", 0, 1, "R")
             
-        pdf.set_font("Courier", "", 8)
-        pdf.multi_cell(0, 4, "---------------------------------", align="C")
+        pdf.set_font("courier", "", 8)
+        pdf.cell(0, 4, "---------------------------------", ln=1, align="C")
         
         # Total
-        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_font(font_main, "B", 9)
         pdf.cell(32, 6, "TOTAL", 0, 0, "R")
         pdf.cell(18, 6, f"Rp {int(order.get('total', 0)):,}", 0, 1, "R")
         
         pdf.ln(2)
-        pdf.set_font("Helvetica", "", 7)
-        if order.get("notes"):
-            pdf.multi_cell(0, 3, f"Cat: {order['notes']}", align="L")
+        pdf.set_font(font_main, "", 7)
+        notes = order.get("notes")
+        if notes:
+            pdf.multi_cell(0, 3, f"Cat: {notes}", align="L")
             pdf.ln(2)
             
         pdf.cell(0, 4, "Terima kasih :)", ln=1, align="C")
         pdf.cell(0, 4, "Bawa nota saat ambil barang.", ln=1, align="C")
 
-        pdf_bytes = pdf.output()
-        headers = {'Content-Disposition': f'attachment; filename="thermal_{order["order_no"]}.pdf"'}
-        return StreamingResponse(io.BytesIO(pdf_bytes), headers=headers, media_type="application/pdf")
+        # Explicitly get bytes
+        pdf_output = pdf.output()
+        return StreamingResponse(
+            io.BytesIO(pdf_output), 
+            headers={'Content-Disposition': f'attachment; filename="thermal_{order.get("order_no")}.pdf"'}, 
+            media_type="application/pdf"
+        )
+        
+    except Exception as e:
+        logger.error(f"Thermal PDF Error Detail: {str(e)}")
+        # Kembalikan detail error ke frontend agar bisa dibaca user
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
         
     except Exception as e:
         logger.error(f"Thermal PDF Error: {str(e)}")
