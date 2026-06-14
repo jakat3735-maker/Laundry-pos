@@ -583,6 +583,64 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     return StreamingResponse(io.BytesIO(pdf_bytes), headers=headers, media_type="application/pdf")
 
 
+@api.get("/orders/{oid}/pdf-thermal")
+async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
+    order = await db.orders.find_one({"id": oid}, {"_id": 0})
+    if not order:
+        raise HTTPException(404, "Order not found")
+
+    # Thermal 58mm width (approx 48mm printable)
+    # Height is dynamic based on items, let's estimate
+    h = 120 + (len(order['items']) * 15)
+    pdf = FPDF(format=(58, h), unit='mm')
+    pdf.add_page()
+    pdf.set_margin(5)
+    
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
+    pdf.set_font("Arial", "", 7)
+    pdf.cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN WANGI", ln=1, align="C")
+    pdf.cell(0, 4, "-"*35, ln=1, align="C")
+    
+    pdf.set_font("Arial", "", 8)
+    pdf.cell(0, 4, f"No: {order['order_no']}", ln=1)
+    pdf.cell(0, 4, f"Plg: {order['customer_name']}", ln=1)
+    pdf.cell(0, 4, f"Tgl: {order['created_at'][:10]} {order['created_at'][11:16]}", ln=1)
+    pdf.cell(0, 4, "-"*35, ln=1, align="C")
+    
+    # Table Header
+    pdf.set_font("Arial", "B", 8)
+    pdf.cell(24, 5, "Layanan", 0, 0, "L")
+    pdf.cell(8, 5, "Qty", 0, 0, "C")
+    pdf.cell(16, 5, "Total", 0, 1, "R")
+    
+    pdf.set_font("Arial", "", 8)
+    for i in order['items']:
+        # Service name might wrap, let's keep it simple or truncate
+        name = i['service_name'][:15]
+        pdf.cell(24, 4, name, 0, 0, "L")
+        pdf.cell(8, 4, str(i['quantity']), 0, 0, "C")
+        pdf.cell(16, 4, f"{int(i['price'] * i['quantity']):,}", 0, 1, "R")
+        
+    pdf.cell(0, 4, "-"*35, ln=1, align="C")
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(32, 6, "TOTAL", 0, 0, "R")
+    pdf.cell(16, 6, f"{int(order['total']):,}", 0, 1, "R")
+    
+    pdf.ln(2)
+    pdf.set_font("Arial", "", 7)
+    if order.get("notes"):
+        pdf.multi_cell(0, 3, f"Cat: {order['notes']}")
+        pdf.ln(2)
+        
+    pdf.cell(0, 4, "Terima kasih :)", 0, 1, "C")
+    pdf.cell(0, 4, "Bawa nota saat ambil barang.", 0, 1, "C")
+
+    pdf_bytes = pdf.output()
+    headers = {'Content-Disposition': f'attachment; filename="thermal_{order["order_no"]}.pdf"'}
+    return StreamingResponse(io.BytesIO(pdf_bytes), headers=headers, media_type="application/pdf")
+
+
 # ------------------------ Midtrans ------------------------
 def _midtrans_base() -> str:
     return "https://app.midtrans.com" if MIDTRANS_IS_PRODUCTION else "https://app.sandbox.midtrans.com"
