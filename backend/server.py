@@ -616,7 +616,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
         
         pdf.set_font("courier", "", 8)
-        pdf.cell(0, 4, "---------------------------------", ln=1, align="C")
+        pdf.multi_cell(0, 4, "-------------------------------", align="C")
         
         # Info Order
         pdf.set_font(font_main, "", 8)
@@ -629,7 +629,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.cell(0, 4, f"Tgl: {date_str} {time_str}", ln=1)
         
         pdf.set_font("courier", "", 8)
-        pdf.cell(0, 4, "---------------------------------", ln=1, align="C")
+        pdf.multi_cell(0, 4, "-------------------------------", align="C")
         
         # Table Items
         pdf.set_font(font_main, "B", 8)
@@ -647,7 +647,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
             pdf.cell(17, 4, f"{int(price * qty):,}", 0, 1, "R")
             
         pdf.set_font("courier", "", 8)
-        pdf.cell(0, 4, "---------------------------------", ln=1, align="C")
+        pdf.multi_cell(0, 4, "-------------------------------", align="C")
         
         # Total
         pdf.set_font(font_main, "B", 9)
