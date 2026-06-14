@@ -353,8 +353,8 @@ async def delete_service(sid: str, _owner=Depends(require_owner)):
 # ------------------------ Orders ------------------------
 async def _next_order_no() -> str:
     today = datetime.now(timezone.utc).strftime("%Y%m%d")
-    count = await db.orders.count_documents({"order_no": {"$regex": f"^LDR-{today}"}})
-    return f"LDR-{today}-{count + 1:04d}"
+    count = await db.orders.count_documents({"order_no": {"$regex": f"^D3G-{today}"}})
+    return f"D3G-{today}-{count + 1:04d}"
 
 
 @api.get("/orders", response_model=List[Order])
