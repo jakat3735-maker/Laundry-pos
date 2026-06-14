@@ -22,9 +22,10 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
 # Mongo
-mongo_url = os.environ["MONGO_URL"]
+mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+db_name = os.environ.get("DB_NAME", "laundry_db")
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ["DB_NAME"]]
+db = client[db_name]
 
 # Settings
 JWT_SECRET = os.environ.get("JWT_SECRET", "laundry-pos-super-secret-key-change-me")
@@ -234,14 +235,14 @@ async def register(payload: UserCreate, _current=Depends(require_owner)):
 
 @api.post("/auth/login", response_model=Token)
 async def login(payload: LoginIn):
-    print(f"DEBUG: Login attempt for email: {payload.email}")
+    logger.info(f"Login attempt for email: {payload.email}")
     user = await db.users.find_one({"email": payload.email}, {"_id": 0})
     if not user:
-        print(f"DEBUG: User not found in DB")
+        logger.warning(f"User not found: {payload.email}")
         raise HTTPException(status_code=401, detail="Email atau password salah")
     
     is_valid = verify_password(payload.password, user["hashed_password"])
-    print(f"DEBUG: Password valid: {is_valid}")
+    logger.info(f"Password valid for {payload.email}: {is_valid}")
     
     if not is_valid:
         raise HTTPException(status_code=401, detail="Email atau password salah")
@@ -281,6 +282,13 @@ async def list_customers(_user=Depends(get_current_user)):
 
 @api.post("/customers", response_model=Customer)
 async def create_customer(payload: CustomerIn, _user=Depends(get_current_user)):
+    # Check if customer with same phone exists
+    existing = await db.customers.find_one({"phone": payload.phone})
+    if existing:
+        # If it exists, we could either raise an error or just return it. 
+        # For simplicity and to avoid "double" creation issues, let's return error.
+        raise HTTPException(status_code=400, detail="Nomor HP sudah terdaftar")
+
     doc = {"id": new_id(), "created_at": now_iso(), **payload.dict()}
     await db.customers.insert_one(doc)
     doc.pop("_id", None)
