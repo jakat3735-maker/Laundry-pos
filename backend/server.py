@@ -352,7 +352,7 @@ async def delete_service(sid: str, _owner=Depends(require_owner)):
 
 # ------------------------ Orders ------------------------
 async def _next_order_no() -> str:
-    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    today = datetime.now(timezone.utc).strftime("%d%m%Y")
     count = await db.orders.count_documents({"order_no": {"$regex": f"^D3G-{today}"}})
     return f"D3G-{today}-{count + 1:04d}"
 
@@ -478,7 +478,8 @@ async def export_pdf(_user=Depends(get_current_user)):
     
     pdf.set_font("Arial", size=8)
     for o in orders:
-        dt = o["created_at"][:10]
+        raw_dt = o["created_at"][:10]  # YYYY-MM-DD
+        dt = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}"
         pdf.cell(35, 8, o["order_no"], 1)
         pdf.cell(45, 8, o["customer_name"][:25], 1)
         pdf.cell(30, 8, dt, 1, 0, "C")
@@ -504,7 +505,7 @@ async def export_excel(_user=Depends(get_current_user)):
         cols = ["order_no", "customer_name", "created_at", "status", "payment_status", "total"]
         df = df[cols]
         df.columns = ["No. Order", "Pelanggan", "Tanggal", "Status Pesanan", "Status Bayar", "Total Harga"]
-        df["Tanggal"] = df["Tanggal"].apply(lambda x: x[:10])
+        df["Tanggal"] = df["Tanggal"].apply(lambda x: f"{x[8:10]}-{x[5:7]}-{x[0:4]}")
     
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -540,7 +541,9 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.cell(label_w, 6, "Nama Pelanggan")
     pdf.cell(0, 6, f": {order['customer_name']}", ln=True)
     pdf.cell(label_w, 6, "Tanggal Pemesanan")
-    pdf.cell(0, 6, f": {order['created_at'][:10]} {order['created_at'][11:16]}", ln=True)
+    raw_dt = order['created_at'][:10]
+    dt_formatted = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}"
+    pdf.cell(0, 6, f": {dt_formatted} {order['created_at'][11:16]}", ln=True)
     pdf.cell(label_w, 6, "Status Pesanan")
     pdf.cell(0, 6, f": {order['status'].upper()}", ln=True)
     pdf.cell(label_w, 6, "Pembayaran")
@@ -631,7 +634,8 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.cell(0, 4, f"Cst: {str(order.get('customer_name', '-'))[:20]}", ln=1)
         
         created_at = order.get('created_at', "")
-        date_str = created_at[:10] if created_at else "-"
+        raw_dt = created_at[:10] if created_at else "00-00-0000"
+        date_str = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}" if created_at else "-"
         time_str = created_at[11:16] if len(created_at) >= 16 else ""
         pdf.set_x(4)
         pdf.cell(0, 4, f"Time: {date_str} {time_str}", ln=1)
