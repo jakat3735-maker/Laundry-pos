@@ -594,41 +594,42 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
     h = 120 + (len(order['items']) * 15)
     pdf = FPDF(format=(58, h), unit='mm')
     pdf.add_page()
-    pdf.set_margin(5)
+    pdf.set_margin(4)
+    
+    line_sep = "------------------------------------------"
     
     pdf.set_font("Arial", "B", 10)
     pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
     pdf.set_font("Arial", "", 7)
     pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
     pdf.set_font("Courier", "", 8)
-    pdf.cell(0, 2, "----------------------------------", ln=1, align="C")
+    pdf.cell(0, 2, line_sep, ln=1, align="C")
     
     pdf.set_font("Arial", "", 8)
     pdf.cell(0, 4, f"No: {order['order_no']}", ln=1)
     pdf.cell(0, 4, f"Plg: {order['customer_name']}", ln=1)
     pdf.cell(0, 4, f"Tgl: {order['created_at'][:10]} {order['created_at'][11:16]}", ln=1)
     pdf.set_font("Courier", "", 8)
-    pdf.cell(0, 2, "----------------------------------", ln=1, align="C")
+    pdf.cell(0, 2, line_sep, ln=1, align="C")
     
     # Table Header
     pdf.set_font("Arial", "B", 8)
     pdf.cell(24, 5, "Layanan", 0, 0, "L")
     pdf.cell(8, 5, "Qty", 0, 0, "C")
-    pdf.cell(16, 5, "Total", 0, 1, "R")
+    pdf.cell(18, 5, "Total", 0, 1, "R")
     
     pdf.set_font("Arial", "", 8)
     for i in order['items']:
-        # Service name might wrap, let's keep it simple or truncate
         name = i['service_name'][:15]
         pdf.cell(24, 4, name, 0, 0, "L")
         pdf.cell(8, 4, str(i['quantity']), 0, 0, "C")
-        pdf.cell(16, 4, f"{int(i['price'] * i['quantity']):,}", 0, 1, "R")
+        pdf.cell(18, 4, f"{int(i['price'] * i['quantity']):,}", 0, 1, "R")
         
     pdf.set_font("Courier", "", 8)
-    pdf.cell(0, 2, "----------------------------------", ln=1, align="C")
+    pdf.cell(0, 2, line_sep, ln=1, align="C")
     pdf.set_font("Arial", "B", 9)
     pdf.cell(32, 6, "TOTAL", 0, 0, "R")
-    pdf.cell(16, 6, f"{int(order['total']):,}", 0, 1, "R")
+    pdf.cell(18, 6, f"{int(order['total']):,}", 0, 1, "R")
     
     pdf.ln(2)
     pdf.set_font("Arial", "", 7)
