@@ -562,7 +562,7 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "3G DIEARMA LAUNDRY", ln=1, align="C")
     pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 6, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", ln=1, align="C")
+    pdf.cell(0, 6, "ALAMAT: RUKO SARKENJI BLOK B4 NO.05 BATU AJI", ln=1, align="C")
     pdf.ln(10)
     
     pdf.set_font("Arial", "B", 11)
@@ -659,7 +659,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.set_font(font_main, "B", 10)
         pdf.cell(0, 5, "3G DIEARMA LAUNDRY", ln=1, align="C")
         pdf.set_font(font_main, "", 7)
-        pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
+        pdf.multi_cell(0, 4, "ALAMAT: RUKO SARKENJI BLOK B4 NO.05 BATU AJI", align="C")
         
         # Explicitly move to next line and reset X position for the separator
         pdf.ln(1)
