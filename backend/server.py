@@ -552,81 +552,85 @@ async def export_excel(_user=Depends(get_current_user)):
 
 @api.get("/orders/{oid}/pdf")
 async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
-    order = await db.orders.find_one({"id": oid}, {"_id": 0})
-    if not order:
-        raise HTTPException(404, "Order not found")
+    try:
+        order = await db.orders.find_one({"id": oid}, {"_id": 0})
+        if not order:
+            raise HTTPException(404, "Order not found")
 
-    # A4 size for receipt
-    pdf = FPDF(format='A4') 
-    pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "3G DIEARMA LAUNDRY", ln=1, align="C")
-    pdf.set_font("Arial", "", 8)
-    pdf.multi_cell(0, 5, "ALAMAT: RUKO SARKENJI BLOK B4 NO.05 BATU AJI", align="C")
-    pdf.multi_cell(0, 5, "WA: 0813 7202 9928", align="C")
-    pdf.ln(5)
-    
-    pdf.set_font("Arial", "B", 11)
-    pdf.cell(0, 8, f"NOTA PEMESANAN: {order['order_no']}", ln=True)
-    pdf.set_font("Arial", size=11)
-    
-    label_w = 45
-    pdf.set_font("Arial", "B", 11)
-    pdf.cell(label_w, 7, "Nama Pelanggan")
-    pdf.cell(0, 7, f": {order['customer_name']}", ln=True)
-    pdf.set_font("Arial", size=11)
-    pdf.cell(label_w, 7, "Tanggal Pemesanan")
-    # Handle ISO format safely
-    c_at = order['created_at']
-    raw_dt = c_at[:10]
-    dt_formatted = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}"
-    # Extract time safely (HH:MM)
-    t_part = c_at[11:16] if len(c_at) >= 16 else "--:--"
-    pdf.cell(0, 7, f": {dt_formatted} {t_part}", ln=True)
-    pdf.cell(label_w, 7, "Penerima")
-    pdf.cell(0, 7, f": {_user.full_name}", ln=True)
-    pdf.cell(label_w, 7, "Status Pesanan")
-    pdf.cell(0, 7, f": {order['status'].upper()}", ln=True)
-    pdf.cell(label_w, 7, "Pembayaran")
-    pdf.cell(0, 7, f": {order['payment_status'].upper()} ({order.get('payment_method') or 'CASH'})", ln=True)
-    pdf.ln(8)
-    
-    # Table Header
-    pdf.set_fill_color(240, 240, 240)
-    pdf.set_font("Arial", "B", 11)
-    pdf.cell(80, 10, "Layanan", 1, 0, "L", True)
-    pdf.cell(40, 10, "Harga", 1, 0, "C", True)
-    pdf.cell(30, 10, "Qty", 1, 0, "C", True)
-    pdf.cell(40, 10, "Subtotal", 1, 1, "R", True)
-    
-    pdf.set_font("Arial", size=11)
-    for i in order['items']:
-        pdf.cell(80, 10, i['service_name'], 1)
-        pdf.cell(40, 10, f"{int(i['price']):,}".replace(",", "."), 1, 0, "C")
-        pdf.cell(30, 10, str(i['quantity']), 1, 0, "C")
-        pdf.cell(40, 10, f"{int(i['price'] * i['quantity']):,}".replace(",", "."), 1, 1, "R")
+        # A4 size for receipt
+        pdf = FPDF(format='A4') 
+        pdf.add_page()
+        pdf.set_font("helvetica", "B", 16)
+        pdf.cell(0, 10, "3G DIEARMA LAUNDRY", ln=1, align="C")
+        pdf.set_font("helvetica", "", 10)
+        pdf.multi_cell(0, 5, "ALAMAT: RUKO SARKENJI BLOK B4 NO.05 BATU AJI", align="C")
+        pdf.multi_cell(0, 5, "WA: 0813 7202 9928", align="C")
+        pdf.ln(5)
         
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(150, 12, "TOTAL HARGA", 1, 0, "R")
-    pdf.cell(40, 12, f"Rp {int(order['total']):,}".replace(",", "."), 1, 1, "R")
-    
-    pdf.ln(15)
-    pdf.set_font("Arial", "I", 10)
-    if order.get("notes"):
-        pdf.multi_cell(0, 6, f"Catatan: {order['notes']}")
+        pdf.set_font("helvetica", "B", 11)
+        pdf.cell(0, 8, f"NOTA PEMESANAN: {order['order_no']}", ln=True)
+        pdf.set_font("helvetica", size=11)
+        
+        label_w = 45
+        pdf.set_font("helvetica", "B", 11)
+        pdf.cell(label_w, 7, "Nama Pelanggan")
+        pdf.cell(0, 7, f": {order['customer_name']}", ln=True)
+        pdf.set_font("helvetica", size=11)
+        pdf.cell(label_w, 7, "Tanggal Pemesanan")
+        # Handle ISO format safely
+        c_at = order['created_at']
+        raw_dt = c_at[:10]
+        dt_formatted = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}"
+        # Extract time safely (HH:MM)
+        t_part = c_at[11:16] if len(c_at) >= 16 else "--:--"
+        pdf.cell(0, 7, f": {dt_formatted} {t_part}", ln=True)
+        pdf.cell(label_w, 7, "Penerima")
+        pdf.cell(0, 7, f": {_user.full_name}", ln=True)
+        pdf.cell(label_w, 7, "Status Pesanan")
+        pdf.cell(0, 7, f": {order['status'].upper()}", ln=True)
+        pdf.cell(label_w, 7, "Pembayaran")
+        pdf.cell(0, 7, f": {order['payment_status'].upper()} ({order.get('payment_method') or 'CASH'})", ln=True)
         pdf.ln(8)
         
-    pdf.set_font("Arial", "", 11)
-    pdf.cell(0, 7, "Syarat & Ketentuan:", ln=True)
-    pdf.cell(0, 6, "1. Pengambilan barang wajib membawa nota ini.", ln=True)
-    pdf.cell(0, 6, "2. Barang tidak diambil > 1 bulan di luar tanggung jawab kami.", ln=True)
-    pdf.ln(15)
-    pdf.set_font("Arial", "B", 11)
-    pdf.cell(0, 10, "Terima kasih sudah Laundry di tempat kami :)", 0, 1, "C")
+        # Table Header
+        pdf.set_fill_color(240, 240, 240)
+        pdf.set_font("helvetica", "B", 11)
+        pdf.cell(80, 10, "Layanan", 1, 0, "L", True)
+        pdf.cell(40, 10, "Harga", 1, 0, "C", True)
+        pdf.cell(30, 10, "Qty", 1, 0, "C", True)
+        pdf.cell(40, 10, "Subtotal", 1, 1, "R", True)
+        
+        pdf.set_font("helvetica", size=11)
+        for i in order['items']:
+            pdf.cell(80, 10, i['service_name'], 1)
+            pdf.cell(40, 10, f"{int(i['price']):,}".replace(",", "."), 1, 0, "C")
+            pdf.cell(30, 10, str(i['quantity']), 1, 0, "C")
+            pdf.cell(40, 10, f"{int(i['price'] * i['quantity']):,}".replace(",", "."), 1, 1, "R")
+            
+        pdf.set_font("helvetica", "B", 12)
+        pdf.cell(150, 12, "TOTAL HARGA", 1, 0, "R")
+        pdf.cell(40, 12, f"Rp {int(order['total']):,}".replace(",", "."), 1, 1, "R")
+        
+        pdf.ln(15)
+        pdf.set_font("helvetica", "I", 10)
+        if order.get("notes"):
+            pdf.multi_cell(0, 6, f"Catatan: {order['notes']}")
+            pdf.ln(8)
+            
+        pdf.set_font("helvetica", "", 11)
+        pdf.cell(0, 7, "Syarat & Ketentuan:", ln=True)
+        pdf.cell(0, 6, "1. Pengambilan barang wajib membawa nota ini.", ln=True)
+        pdf.cell(0, 6, "2. Barang tidak diambil > 1 bulan di luar tanggung jawab kami.", ln=True)
+        pdf.ln(15)
+        pdf.set_font("helvetica", "B", 11)
+        pdf.cell(0, 10, "Terima kasih sudah Laundry di tempat kami :)", 0, 1, "C")
 
-    pdf_bytes = pdf.output()
-    headers = {'Content-Disposition': f'attachment; filename="nota_{order["order_no"]}.pdf"'}
-    return StreamingResponse(io.BytesIO(pdf_bytes), headers=headers, media_type="application/pdf")
+        pdf_bytes = pdf.output()
+        headers = {'Content-Disposition': f'attachment; filename="nota_{order["order_no"]}.pdf"'}
+        return StreamingResponse(io.BytesIO(pdf_bytes), headers=headers, media_type="application/pdf")
+    except Exception as e:
+        logger.error(f"Standard PDF Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Gagal generate PDF: {str(e)}")
 
 
 @api.get("/orders/{oid}/pdf-thermal")
