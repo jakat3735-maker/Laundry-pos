@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -15,6 +15,7 @@ interface Stats {
   orders_total: number;
   by_status: Record<string, number>;
   active_orders: any[];
+  finished_orders: any[];
 }
 
 export default function Dashboard() {
@@ -67,6 +68,11 @@ export default function Dashboard() {
               <Text style={styles.role}>{user?.role === "owner" ? "Owner" : "Kasir"} • {connected ? "Live tersinkron" : "Mode offline"}</Text>
             </View>
           </View>
+          <Image
+            source={require("../../assets/images/icon.png")}
+            style={{ width: 32, height: 32, borderRadius: 8, marginRight: spacing.sm }}
+            resizeMode="contain"
+          />
           <Pressable testID="logout-btn" onPress={signOut} style={styles.iconBtn}>
             <Ionicons name="log-out-outline" size={22} color={colors.onSurfaceSecondary} />
           </Pressable>
@@ -122,6 +128,40 @@ export default function Dashboard() {
                 <Pressable
                   key={o.id}
                   testID={`active-order-${o.order_no}`}
+                  onPress={() => router.push(`/(app)/order/${o.id}`)}
+                  style={({ pressed }) => [styles.orderCard, pressed && { opacity: 0.85 }]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.orderNo}>{o.order_no}</Text>
+                    <Text style={styles.orderCust}>{o.customer_name}</Text>
+                    <Text style={styles.orderTotal}>{formatIDR(o.total)}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.badge,
+                      { backgroundColor: statusColors[o.status as keyof typeof statusColors]?.bg || colors.brandTertiary },
+                    ]}
+                  >
+                    <Text style={{ color: statusColors[o.status as keyof typeof statusColors]?.fg, fontSize: 11, fontWeight: "600" }}>
+                      {statusColors[o.status as keyof typeof statusColors]?.label || o.status}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))
+            )}
+
+            {/* Finished orders */}
+            <Text style={styles.sectionTitle}>Pesanan Selesai</Text>
+            {(stats?.finished_orders?.length ?? 0) === 0 ? (
+              <View style={styles.emptyBox}>
+                <Ionicons name="checkmark-done-circle-outline" size={42} color={colors.muted} />
+                <Text style={styles.emptyText}>Belum ada pesanan selesai</Text>
+              </View>
+            ) : (
+              stats?.finished_orders?.map((o) => (
+                <Pressable
+                  key={o.id}
+                  testID={`finished-order-${o.order_no}`}
                   onPress={() => router.push(`/(app)/order/${o.id}`)}
                   style={({ pressed }) => [styles.orderCard, pressed && { opacity: 0.85 }]}
                 >

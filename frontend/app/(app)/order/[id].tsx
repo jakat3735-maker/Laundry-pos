@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Share, Modal, Image, Alert,
+  View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Share, Modal, Image, Alert, TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,7 @@ import { WebView } from "react-native-webview";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { api, getAuthToken } from "../../../src/api/client";
+import { useAuth } from "../../../src/contexts/AuthContext";
 import { useRealtimeEvent } from "../../../src/contexts/RealtimeContext";
 import { colors, spacing, radius, statusColors, formatIDR } from "../../../src/theme";
 
@@ -17,12 +18,19 @@ const STATUS_FLOW = ["diterima", "dicuci", "siap", "selesai", "diambil"];
 export default function OrderDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [snapUrl, setSnapUrl] = useState<string | null>(null);
   const [midtransError, setMidtransError] = useState<string | null>(null);
-  const [printing, setPrinting] = useState(false);
+  const [printing, setPrinting] = useState<"thermal" | "std" | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [editModal, setEditModal] = useState(false);
+  const [services, setServices] = useState<any[]>([]);
+  const [editItems, setEditItems] = useState<any[]>([]);
+  const [editNotes, setEditNotes] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -68,28 +76,12 @@ export default function OrderDetail() {
     } finally { setUpdating(false); }
   };
 
-  const shareReceipt = async () => {
-    if (!order) return;
-    const lines = [
-      `*Nota Laundry POS*`,
-      `No: ${order.order_no}`,
-      `Pelanggan: ${order.customer_name}`,
-      ``,
-      ...order.items.map((i: any) => `${i.service_name} ${i.quantity}${i.unit} × ${formatIDR(i.price)} = ${formatIDR(i.price * i.quantity)}`),
-      ``,
-      `Total: ${formatIDR(order.total)}`,
-      `Status: ${statusColors[order.status]?.label}`,
-      `Pembayaran: ${order.payment_status === "paid" ? "Lunas" : "Belum bayar"}`,
-    ];
-    try { await Share.share({ message: lines.join("\n") }); } catch {}
-  };
-
   const downloadReceipt = async () => {
     if (Platform.OS === "web") {
       Alert.alert("Info", "Download tidak tersedia di versi web.");
       return;
     }
-    setPrinting(true);
+    setPrinting("std");
     try {
       const filename = `nota_${order.order_no}.pdf`;
       const fileUri = `${FileSystem.documentDirectory}${filename}`;
@@ -113,7 +105,7 @@ export default function OrderDetail() {
     } catch (e: any) {
       Alert.alert("Gagal", e.message || "Gagal mendownload nota");
     } finally {
-      setPrinting(false);
+      setPrinting(null);
     }
   };
 
@@ -122,7 +114,7 @@ export default function OrderDetail() {
       Alert.alert("Info", "Download tidak tersedia di versi web.");
       return;
     }
-    setPrinting(true);
+    setPrinting("thermal");
     try {
       const filename = `thermal_${order.order_no}.pdf`;
       const fileUri = `${FileSystem.documentDirectory}${filename}`;
@@ -146,7 +138,86 @@ export default function OrderDetail() {
     } catch (e: any) {
       Alert.alert("Gagal", e.message || "Gagal mendownload nota thermal");
     } finally {
-      setPrinting(false);
+      setPrinting(null);
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Hapus Pesanan",
+      "Apakah Anda yakin ingin menghapus pesanan ini? Tindakan ini tidak dapat dibatalkan.",
+      [
+        { text: "Batal", style: "cancel" },
+        { text: "Hapus", style: "destructive", onPress: deleteOrder },
+      ]
+    );
+  };
+
+  const deleteOrder = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/orders/${id}`);
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Gagal", e?.response?.data?.detail || "Gagal menghapus pesanan");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const openEdit = async () => {
+    if (!order) return;
+    setEditItems(JSON.parse(JSON.stringify(order.items)));
+    setEditNotes(order.notes || "");
+    setEditModal(true);
+    try {
+      const res = await api.get("/services");
+      setServices(res.data);
+    } catch (e) {
+      console.warn("Failed to load services", e);
+    }
+  };
+
+  const updateEditQty = (sid: string, delta: number) => {
+    setEditItems(prev => prev.map(i =>
+      i.service_id === sid ? { ...i, quantity: Math.max(0.1, +(i.quantity + delta).toFixed(1)) } : i
+    ));
+  };
+
+  const addEditItem = (svc: any) => {
+    const exists = editItems.find(i => i.service_id === svc.id);
+    if (exists) {
+      updateEditQty(svc.id, 1);
+    } else {
+      setEditItems([...editItems, { service_id: svc.id, service_name: svc.name, price: svc.price, unit: svc.unit, quantity: 1 }]);
+    }
+  };
+
+  const removeEditItem = (sid: string) => {
+    setEditItems(prev => prev.filter(i => i.service_id !== sid));
+  };
+
+  const saveEdit = async () => {
+    if (editItems.length === 0) {
+      Alert.alert("Error", "Minimal harus ada 1 item");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const body = {
+        customer_id: order.customer_id,
+        customer_name: order.customer_name,
+        items: editItems,
+        notes: editNotes
+      };
+      const res = await api.put(`/orders/${order.id}`, body);
+      setOrder(res.data);
+      setEditModal(false);
+      Alert.alert("Sukses", "Pesanan berhasil diperbarui");
+    } catch (e: any) {
+      Alert.alert("Gagal", e?.response?.data?.detail || "Gagal memperbarui pesanan");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -163,31 +234,38 @@ export default function OrderDetail() {
         </Pressable>
         <Text style={styles.title}>Detail Order</Text>
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
-          <Pressable onPress={printThermal} disabled={printing} style={styles.iconBtn}>
-            {printing ? (
+          <Pressable onPress={printThermal} disabled={!!printing} style={styles.iconBtn}>
+            {printing === "thermal" ? (
               <ActivityIndicator size="small" color={colors.brand} />
             ) : (
               <Image
                 source={require("../../../assets/images/Print Portable.png")}
-                style={{ width: 24, height: 24 }}
+                style={[{ width: 24, height: 24 }, printing === "std" && { opacity: 0.3 }]}
                 resizeMode="contain"
               />
             )}
           </Pressable>
-          <Pressable onPress={downloadReceipt} disabled={printing} style={styles.iconBtn}>
-            {printing ? (
+          <Pressable onPress={downloadReceipt} disabled={!!printing} style={styles.iconBtn}>
+            {printing === "std" ? (
               <ActivityIndicator size="small" color={colors.brand} />
             ) : (
               <Image
                 source={require("../../../assets/images/Std.png")}
-                style={{ width: 24, height: 24 }}
+                style={[{ width: 24, height: 24 }, printing === "thermal" && { opacity: 0.3 }]}
                 resizeMode="contain"
               />
             )}
           </Pressable>
-          <Pressable testID="share-btn" onPress={shareReceipt} style={styles.iconBtn}>
-            <Ionicons name="share-outline" size={20} color={colors.brand} />
-          </Pressable>
+          {user?.role === "owner" && (
+            <>
+              <Pressable onPress={openEdit} style={[styles.iconBtn, { marginLeft: spacing.xs }]}>
+                <Ionicons name="create-outline" size={20} color={colors.brand} />
+              </Pressable>
+              <Pressable onPress={confirmDelete} disabled={deleting} style={[styles.iconBtn, { marginLeft: spacing.xs }]}>
+                {deleting ? <ActivityIndicator size="small" color={colors.error} /> : <Ionicons name="trash-outline" size={20} color={colors.error} />}
+              </Pressable>
+            </>
+          )}
         </View>
       </View>
 
@@ -309,6 +387,78 @@ export default function OrderDetail() {
           {snapUrl && <WebView source={{ uri: snapUrl }} startInLoadingState />}
         </SafeAreaView>
       </Modal>
+
+      {/* Edit Modal */}
+      <Modal visible={editModal} transparent animationType="slide" onRequestClose={() => setEditModal(false)}>
+        <SafeAreaView style={styles.modalRoot}>
+          <Pressable style={styles.backdrop} onPress={() => setEditModal(false)} />
+          <View style={styles.editSheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Edit Rincian Pesanan</Text>
+              <Pressable onPress={() => setEditModal(false)}>
+                <Ionicons name="close" size={24} color={colors.onSurface} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={{ maxHeight: '80%' }}>
+              <Text style={styles.editSectionTitle}>Item Saat Ini</Text>
+              {editItems.map((item, idx) => (
+                <View key={idx} style={styles.editItemRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.editItemName}>{item.service_name}</Text>
+                    <Text style={styles.editItemSub}>{formatIDR(item.price)} / {item.unit}</Text>
+                  </View>
+                  <View style={styles.editQtyBox}>
+                    <Pressable onPress={() => updateEditQty(item.service_id, -0.1)} style={styles.editQtyBtn}>
+                      <Ionicons name="remove" size={16} color={colors.brand} />
+                    </Pressable>
+                    <Text style={styles.editQtyText}>{item.quantity}</Text>
+                    <Pressable onPress={() => updateEditQty(item.service_id, 0.1)} style={styles.editQtyBtn}>
+                      <Ionicons name="add" size={16} color={colors.brand} />
+                    </Pressable>
+                  </View>
+                  <Pressable onPress={() => removeEditItem(item.service_id)} style={{ padding: 4 }}>
+                    <Ionicons name="trash-outline" size={18} color={colors.error} />
+                  </Pressable>
+                </View>
+              ))}
+
+              <Text style={styles.editSectionTitle}>Tambah Layanan</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
+                <View style={styles.servicesRow}>
+                  {services.map(s => (
+                    <Pressable key={s.id} onPress={() => addEditItem(s)} style={styles.svcChip}>
+                      <Text style={styles.svcChipText}>{s.name}</Text>
+                      <Ionicons name="add" size={14} color={colors.brand} />
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+
+              <Text style={styles.editSectionTitle}>Catatan</Text>
+              <TextInput
+                value={editNotes}
+                onChangeText={setEditNotes}
+                placeholder="Tambah catatan..."
+                style={styles.editNotesInput}
+                multiline
+              />
+            </ScrollView>
+
+            <View style={styles.sheetFooter}>
+              <Pressable
+                onPress={saveEdit}
+                disabled={savingEdit}
+                style={[styles.saveEditBtn, savingEdit && { opacity: 0.5 }]}
+              >
+                {savingEdit ? <ActivityIndicator color="#fff" /> : (
+                  <Text style={styles.saveEditBtnText}>Simpan Perubahan</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -348,4 +498,23 @@ const styles = StyleSheet.create({
   btnPrimary: { backgroundColor: colors.brand },
   btnSecondary: { backgroundColor: colors.brandTertiary, borderWidth: 1, borderColor: colors.brand },
   actionText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  modalRoot: { flex: 1, justifyContent: "flex-end" },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)" },
+  editSheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, flex: 1, marginTop: 40 },
+  sheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.lg },
+  sheetTitle: { fontSize: 18, fontWeight: "700", color: colors.onSurface },
+  editSectionTitle: { fontSize: 14, fontWeight: "600", color: colors.onSurfaceSecondary, marginTop: spacing.md, marginBottom: spacing.sm },
+  editItemRow: { flexDirection: "row", alignItems: "center", paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  editItemName: { fontSize: 14, fontWeight: "600", color: colors.onSurface },
+  editItemSub: { fontSize: 12, color: colors.muted },
+  editQtyBox: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginHorizontal: spacing.md },
+  editQtyBtn: { width: 28, height: 28, borderRadius: 6, backgroundColor: colors.surfaceSecondary, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border },
+  editQtyText: { fontSize: 14, fontWeight: "700", minWidth: 30, textAlign: "center" },
+  servicesRow: { flexDirection: "row", gap: spacing.sm },
+  svcChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 4 },
+  svcChipText: { fontSize: 12, fontWeight: "500", color: colors.onSurfaceSecondary },
+  editNotesInput: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, minHeight: 80, textAlignVertical: "top", backgroundColor: colors.surfaceSecondary },
+  sheetFooter: { marginTop: spacing.xl, paddingBottom: spacing.lg },
+  saveEditBtn: { height: 50, backgroundColor: colors.brand, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
+  saveEditBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
 });

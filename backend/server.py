@@ -551,7 +551,7 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     pdf = FPDF(format='A4') 
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "DIEARMA 3G LAUNDRY", ln=1, align="C")
+    pdf.cell(0, 10, "3G DIEARMA LAUNDRY", ln=1, align="C")
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 6, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", ln=1, align="C")
     pdf.ln(10)
@@ -644,7 +644,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         
         # Header
         pdf.set_font(font_main, "B", 10)
-        pdf.cell(0, 5, "DIEARMA 3G LAUNDRY", ln=1, align="C")
+        pdf.cell(0, 5, "3G DIEARMA LAUNDRY", ln=1, align="C")
         pdf.set_font(font_main, "", 7)
         pdf.multi_cell(0, 4, "SAHABAT LAUNDRY PAKAIAN BERSIH DAN RAPI", align="C")
         
