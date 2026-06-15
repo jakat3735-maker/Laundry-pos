@@ -730,7 +730,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
             pdf.multi_cell(0, 3, f"Cat: {notes}", align="L")
             pdf.ln(2)
             
-        pdf.cell(0, 4, "Terima kasih :)", ln=1, align="C")
+        pdf.multi_cell(0, 4, "TERIMAKASIH ATAS KEPERCAYAAN ANDA :)", align="C")
         pdf.cell(0, 4, "Bawa nota saat ambil barang.", ln=1, align="C")
 
         # Explicitly get bytes
