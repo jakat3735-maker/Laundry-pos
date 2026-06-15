@@ -650,7 +650,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         items_count = len(items)
         # Estimasi tinggi yang lebih akurat: 
         # Header (~55mm) + Items (~8mm/item) + Footer (~65mm)
-        calculated_h = 120 + (items_count * 8)
+        calculated_h = 130 + (items_count * 8)
         
         # Inisialisasi PDF dengan penanganan error pada format
         try:
@@ -743,6 +743,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
             pdf.ln(2)
             
         pdf.multi_cell(50, 4, "TERIMAKASIH ATAS KEPERCAYAAN ANDA :)", align="C")
+        pdf.ln(2)
         pdf.multi_cell(50, 4, "Bawa nota saat ambil barang.", align="C")
         pdf.ln(10)
 
