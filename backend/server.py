@@ -558,7 +558,7 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
             raise HTTPException(404, "Order not found")
 
         # A4 size for receipt
-        pdf = FPDF(format='A4') 
+        pdf = FPDF(orientation='P', unit='mm', format='A4') 
         pdf.add_page()
         pdf.set_font("helvetica", "B", 16)
         pdf.cell(0, 10, "3G DIEARMA LAUNDRY", ln=1, align="C")
@@ -568,13 +568,13 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.ln(5)
         
         pdf.set_font("helvetica", "B", 11)
-        pdf.cell(0, 8, f"NOTA PEMESANAN: {order['order_no']}", ln=True)
+        pdf.cell(0, 8, f"NOTA PEMESANAN: {order['order_no']}", ln=1)
         pdf.set_font("helvetica", size=11)
         
         label_w = 45
         pdf.set_font("helvetica", "B", 11)
         pdf.cell(label_w, 7, "Nama Pelanggan")
-        pdf.cell(0, 7, f": {order['customer_name']}", ln=True)
+        pdf.cell(0, 7, f": {order['customer_name']}", ln=1)
         pdf.set_font("helvetica", size=11)
         pdf.cell(label_w, 7, "Tanggal Pemesanan")
         # Handle ISO format safely
@@ -583,13 +583,13 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
         dt_formatted = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}"
         # Extract time safely (HH:MM)
         t_part = c_at[11:16] if len(c_at) >= 16 else "--:--"
-        pdf.cell(0, 7, f": {dt_formatted} {t_part}", ln=True)
+        pdf.cell(0, 7, f": {dt_formatted} {t_part}", ln=1)
         pdf.cell(label_w, 7, "Penerima")
-        pdf.cell(0, 7, f": {_user.full_name}", ln=True)
+        pdf.cell(0, 7, f": {_user.full_name}", ln=1)
         pdf.cell(label_w, 7, "Status Pesanan")
-        pdf.cell(0, 7, f": {order['status'].upper()}", ln=True)
+        pdf.cell(0, 7, f": {order['status'].upper()}", ln=1)
         pdf.cell(label_w, 7, "Pembayaran")
-        pdf.cell(0, 7, f": {order['payment_status'].upper()} ({order.get('payment_method') or 'CASH'})", ln=True)
+        pdf.cell(0, 7, f": {order['payment_status'].upper()} ({order.get('payment_method') or 'CASH'})", ln=1)
         pdf.ln(8)
         
         # Table Header
@@ -618,9 +618,9 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
             pdf.ln(8)
             
         pdf.set_font("helvetica", "", 11)
-        pdf.cell(0, 7, "Syarat & Ketentuan:", ln=True)
-        pdf.cell(0, 6, "1. Pengambilan barang wajib membawa nota ini.", ln=True)
-        pdf.cell(0, 6, "2. Barang tidak diambil > 1 bulan di luar tanggung jawab kami.", ln=True)
+        pdf.cell(0, 7, "Syarat & Ketentuan:", ln=1)
+        pdf.cell(0, 6, "1. Pengambilan barang wajib membawa nota ini.", ln=1)
+        pdf.cell(0, 6, "2. Barang tidak diambil > 1 bulan di luar tanggung jawab kami.", ln=1)
         pdf.ln(15)
         pdf.set_font("helvetica", "B", 11)
         pdf.cell(0, 10, "Terima kasih sudah Laundry di tempat kami :)", 0, 1, "C")
