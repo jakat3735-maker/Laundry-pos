@@ -505,7 +505,9 @@ async def export_pdf(_user=Depends(get_current_user)):
         raw_dt = o["created_at"][:10]  # YYYY-MM-DD
         dt = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}"
         pdf.cell(35, 8, o["order_no"], 1)
+        pdf.set_font("Arial", "B", 8)
         pdf.cell(45, 8, o["customer_name"][:25], 1)
+        pdf.set_font("Arial", size=8)
         pdf.cell(30, 8, dt, 1, 0, "C")
         pdf.cell(25, 8, o["status"], 1, 0, "C")
         pdf.cell(25, 8, o["payment_status"], 1, 0, "C")
@@ -568,8 +570,10 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     pdf.set_font("Arial", size=11)
     
     label_w = 45
+    pdf.set_font("Arial", "B", 11)
     pdf.cell(label_w, 7, "Nama Pelanggan")
     pdf.cell(0, 7, f": {order['customer_name']}", ln=True)
+    pdf.set_font("Arial", size=11)
     pdf.cell(label_w, 7, "Tanggal Pemesanan")
     # Handle ISO format safely
     c_at = order['created_at']
@@ -668,7 +672,9 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.set_x(4)
         pdf.cell(0, 4, f"No: {order.get('order_no', '-')}", ln=1)
         pdf.set_x(4)
+        pdf.set_font(font_main, "B", 8)
         pdf.cell(0, 4, f"Cst: {str(order.get('customer_name', '-'))[:20]}", ln=1)
+        pdf.set_font(font_main, "", 8)
         
         created_at = order.get('created_at', "")
         raw_dt = created_at[:10] if created_at else "00-00-0000"
