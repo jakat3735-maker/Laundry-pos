@@ -480,6 +480,8 @@ async def dashboard_stats(_user=Depends(get_current_user)):
 @api.get("/reports/pdf")
 async def export_pdf(_user=Depends(get_current_user)):
     orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    users = await db.users.find({}, {"id": 1, "full_name": 1, "_id": 0}).to_list(1000)
+    user_map = {u["id"]: u["full_name"] for u in users}
     
     pdf = FPDF()
     pdf.add_page()
@@ -493,25 +495,29 @@ async def export_pdf(_user=Depends(get_current_user)):
     # Table Header
     pdf.set_fill_color(200, 220, 255)
     pdf.set_font("Arial", "B", 9)
-    pdf.cell(35, 10, "No. Order", 1, 0, "C", True)
-    pdf.cell(45, 10, "Pelanggan", 1, 0, "C", True)
-    pdf.cell(30, 10, "Tanggal", 1, 0, "C", True)
-    pdf.cell(25, 10, "Status", 1, 0, "C", True)
-    pdf.cell(25, 10, "Bayar", 1, 0, "C", True)
-    pdf.cell(30, 10, "Total", 1, 1, "C", True)
+    pdf.cell(30, 10, "No. Order", 1, 0, "C", True)
+    pdf.cell(30, 10, "Penerima", 1, 0, "C", True)
+    pdf.cell(40, 10, "Pelanggan", 1, 0, "C", True)
+    pdf.cell(25, 10, "Tanggal", 1, 0, "C", True)
+    pdf.cell(20, 10, "Status", 1, 0, "C", True)
+    pdf.cell(20, 10, "Bayar", 1, 0, "C", True)
+    pdf.cell(25, 10, "Total", 1, 1, "C", True)
     
     pdf.set_font("Arial", size=8)
     for o in orders:
         raw_dt = o["created_at"][:10]  # YYYY-MM-DD
         dt = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}"
-        pdf.cell(35, 8, o["order_no"], 1)
+        admin_name = user_map.get(o.get("created_by"), "Unknown")
+        
+        pdf.cell(30, 8, o["order_no"], 1)
+        pdf.cell(30, 8, admin_name[:15], 1)
         pdf.set_font("Arial", "B", 8)
-        pdf.cell(45, 8, o["customer_name"][:25], 1)
+        pdf.cell(40, 8, o["customer_name"][:20], 1)
         pdf.set_font("Arial", size=8)
-        pdf.cell(30, 8, dt, 1, 0, "C")
-        pdf.cell(25, 8, o["status"], 1, 0, "C")
-        pdf.cell(25, 8, o["payment_status"], 1, 0, "C")
-        pdf.cell(30, 8, f"Rp {int(o['total']):,}".replace(",", "."), 1, 1, "R")
+        pdf.cell(25, 8, dt, 1, 0, "C")
+        pdf.cell(20, 8, o["status"], 1, 0, "C")
+        pdf.cell(20, 8, o["payment_status"], 1, 0, "C")
+        pdf.cell(25, 8, f"Rp {int(o['total']):,}".replace(",", "."), 1, 1, "R")
         
     pdf_bytes = pdf.output()
     
