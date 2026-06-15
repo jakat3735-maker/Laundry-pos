@@ -560,15 +560,20 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
         # A4 size for receipt
         pdf = FPDF(orientation='P', unit='mm', format='A4') 
         pdf.add_page()
+        pdf.set_margins(10, 10, 10)
+        
+        # Header
         pdf.set_font("helvetica", "B", 16)
-        pdf.cell(0, 10, "3G DIEARMA LAUNDRY", ln=1, align="C")
+        pdf.cell(190, 10, "3G DIEARMA LAUNDRY", align="C", ln=1)
         pdf.set_font("helvetica", "", 10)
-        pdf.multi_cell(0, 5, "ALAMAT: RUKO SARKENJI BLOK B4 NO.05 BATU AJI", align="C")
-        pdf.multi_cell(0, 5, "WA: 0813 7202 9928", align="C")
+        pdf.set_x(10)
+        pdf.multi_cell(190, 5, "ALAMAT: RUKO SARKENJI BLOK B4 NO.05 BATU AJI", align="C")
+        pdf.set_x(10)
+        pdf.multi_cell(190, 5, "WA: 0813 7202 9928", align="C")
         pdf.ln(5)
         
         pdf.set_font("helvetica", "B", 11)
-        pdf.cell(0, 8, f"NOTA PEMESANAN: {order['order_no']}", ln=1)
+        pdf.cell(190, 8, f"NOTA PEMESANAN: {order['order_no']}", ln=1)
         pdf.set_font("helvetica", size=11)
         
         label_w = 45
@@ -662,10 +667,12 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         
         # Header
         pdf.set_font(font_main, "B", 10)
-        pdf.cell(0, 5, "3G DIEARMA LAUNDRY", ln=1, align="C")
+        pdf.cell(50, 5, "3G DIEARMA LAUNDRY", align="C", ln=1)
         pdf.set_font(font_main, "", 6)
-        pdf.multi_cell(0, 3, "ALAMAT: RUKO SARKENJI BLOK B4 NO.05 BATU AJI", align="C")
-        pdf.multi_cell(0, 4, "WA: 0813 7202 9928", align="C")
+        pdf.set_x(4)
+        pdf.multi_cell(50, 3, "ALAMAT: RUKO SARKENJI BLOK B4 NO.05 BATU AJI", align="C")
+        pdf.set_x(4)
+        pdf.multi_cell(50, 4, "WA: 0813 7202 9928", align="C")
         
         # Explicitly move to next line and reset X position for the separator
         pdf.ln(1)
