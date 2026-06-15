@@ -406,6 +406,24 @@ async def create_order(payload: OrderIn, user: UserPublic = Depends(get_current_
     return Order(**doc)
 
 
+@api.put("/orders/{oid}", response_model=Order)
+async def update_order(oid: str, payload: OrderIn, _user=Depends(get_current_user)):
+    total = sum(i.price * i.quantity for i in payload.items)
+    update_doc = {
+        "customer_id": payload.customer_id,
+        "customer_name": payload.customer_name,
+        "items": [i.dict() for i in payload.items],
+        "total": total,
+        "notes": payload.notes or "",
+    }
+    await db.orders.update_one({"id": oid}, {"$set": update_doc})
+    doc = await db.orders.find_one({"id": oid}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Order not found")
+    await ws_manager.broadcast("orders_updated", {"order_no": doc["order_no"]})
+    return Order(**doc)
+
+
 @api.put("/orders/{oid}/status", response_model=Order)
 async def update_status(oid: str, payload: StatusUpdate, _user=Depends(get_current_user)):
     await db.orders.update_one({"id": oid}, {"$set": {"status": payload.status}})
