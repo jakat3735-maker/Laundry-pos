@@ -742,8 +742,9 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
             pdf.multi_cell(50, 3, f"Cat: {notes}", align="L")
             pdf.ln(2)
             
+        pdf.set_font(font_main, "", 6) # Kecilkan font agar muat 1 baris
         pdf.multi_cell(50, 4, "TERIMAKASIH ATAS KEPERCAYAAN ANDA :)", align="C")
-        pdf.ln(2)
+        pdf.ln(1)
         pdf.multi_cell(50, 4, "Bawa nota saat ambil barang.", align="C")
         pdf.ln(10)
 
