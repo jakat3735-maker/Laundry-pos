@@ -738,11 +738,11 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.set_font(font_main, "", 7)
         notes = order.get("notes")
         if notes:
-            pdf.multi_cell(0, 3, f"Cat: {notes}", align="L")
+            pdf.multi_cell(50, 3, f"Cat: {notes}", align="L")
             pdf.ln(2)
             
-        pdf.multi_cell(0, 4, "TERIMAKASIH ATAS KEPERCAYAAN ANDA :)", align="C")
-        pdf.cell(0, 4, "Bawa nota saat ambil barang.", ln=1, align="C")
+        pdf.multi_cell(50, 4, "TERIMAKASIH ATAS KEPERCAYAAN ANDA :)", align="C")
+        pdf.cell(50, 4, "Bawa nota saat ambil barang.", ln=1, align="C")
 
         # Explicitly get bytes
         pdf_output = pdf.output()
