@@ -522,13 +522,19 @@ async def export_pdf(_user=Depends(get_current_user)):
 @api.get("/reports/excel")
 async def export_excel(_user=Depends(get_current_user)):
     orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    users = await db.users.find({}, {"id": 1, "full_name": 1, "_id": 0}).to_list(1000)
+    user_map = {u["id"]: u["full_name"] for u in users}
+    
+    for o in orders:
+        o["penerima"] = user_map.get(o.get("created_by"), "Unknown")
+
     df = pd.DataFrame(orders)
     
     # Clean up for Excel
     if not df.empty:
-        cols = ["order_no", "customer_name", "created_at", "status", "payment_status", "total"]
+        cols = ["order_no", "customer_name", "created_at", "penerima", "status", "payment_status", "total"]
         df = df[cols]
-        df.columns = ["No. Order", "Pelanggan", "Tanggal", "Status Pesanan", "Status Bayar", "Total Harga"]
+        df.columns = ["No. Order", "Pelanggan", "Tanggal", "Penerima", "Status Pesanan", "Status Bayar", "Total Harga"]
         df["Tanggal"] = df["Tanggal"].apply(lambda x: f"{x[8:10]}-{x[5:7]}-{x[0:4]}")
     
     output = io.BytesIO()
