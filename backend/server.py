@@ -661,6 +661,7 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.add_page()
         pdf.set_auto_page_break(False) # Hindari page break otomatis pada thermal
         pdf.set_margins(4, 4, 4)
+        pdf.set_auto_page_break(False, margin=0) # Pastikan tidak ada potongan di bawah
         
         # Gunakan font standar 'helvetica' (lowercase sering lebih aman di beberapa versi fpdf)
         font_main = "helvetica"
