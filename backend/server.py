@@ -487,6 +487,7 @@ async def export_pdf(_user=Depends(get_current_user)):
     pdf.cell(0, 10, "Laporan Pesanan Laundry", ln=True, align="C")
     pdf.set_font("Arial", size=10)
     pdf.cell(0, 10, f"Dicetak pada: {now_wib().strftime('%d-%m-%Y %H:%M:%S')} WIB", ln=True, align="C")
+    pdf.cell(0, 10, f"Penerima: {_user.full_name}", ln=True, align="C")
     pdf.ln(10)
     
     # Table Header
@@ -571,6 +572,8 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
     # Extract time safely (HH:MM)
     t_part = c_at[11:16] if len(c_at) >= 16 else "--:--"
     pdf.cell(0, 7, f": {dt_formatted} {t_part}", ln=True)
+    pdf.cell(label_w, 7, "Penerima")
+    pdf.cell(0, 7, f": {_user.full_name}", ln=True)
     pdf.cell(label_w, 7, "Status Pesanan")
     pdf.cell(0, 7, f": {order['status'].upper()}", ln=True)
     pdf.cell(label_w, 7, "Pembayaran")
@@ -668,6 +671,8 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         t_str = created_at[11:16] if len(created_at) >= 16 else "--:--"
         pdf.set_x(4)
         pdf.cell(0, 4, f"Time: {date_str} {t_str}", ln=1)
+        pdf.set_x(4)
+        pdf.cell(0, 4, f"Penerima: {_user.full_name[:20]}", ln=1)
         
         pdf.ln(1)
         pdf.set_x(4)
