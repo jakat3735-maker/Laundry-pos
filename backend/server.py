@@ -640,8 +640,8 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         items = order.get('items', [])
         items_count = len(items)
         # Estimasi tinggi yang lebih akurat: 
-        # Header (~45mm) + Items (~8mm/item) + Footer (~35mm)
-        calculated_h = 80 + (items_count * 8)
+        # Header (~55mm) + Items (~8mm/item) + Footer (~35mm)
+        calculated_h = 90 + (items_count * 8)
         
         # Inisialisasi PDF dengan penanganan error pada format
         try:
@@ -687,6 +687,11 @@ async def export_order_thermal_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.cell(0, 4, f"Time: {date_str} {t_str}", ln=1)
         pdf.set_x(4)
         pdf.cell(0, 4, f"Penerima: {_user.full_name[:20]}", ln=1)
+        pdf.set_x(4)
+        pdf.cell(0, 4, f"Status: {order.get('status', '').upper()}", ln=1)
+        pdf.set_x(4)
+        pay_method = order.get('payment_method') or 'CASH'
+        pdf.cell(0, 4, f"Bayar: {order.get('payment_status', '').upper()} ({pay_method.upper()})", ln=1)
         
         pdf.ln(1)
         pdf.set_x(4)
