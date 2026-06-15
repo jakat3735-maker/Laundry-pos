@@ -629,6 +629,8 @@ async def export_order_pdf(oid: str, _user=Depends(get_current_user)):
         pdf.ln(15)
         pdf.set_font("helvetica", "B", 11)
         pdf.cell(0, 10, "Terima kasih sudah Laundry di tempat kami :)", 0, 1, "C")
+        pdf.set_font("helvetica", "", 11)
+        pdf.cell(0, 7, "Bawa nota saat ambil barang.", 0, 1, "C")
 
         pdf_bytes = pdf.output()
         headers = {'Content-Disposition': f'attachment; filename="nota_{order["order_no"]}.pdf"'}
