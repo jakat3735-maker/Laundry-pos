@@ -501,30 +501,40 @@ async def export_pdf(_user=Depends(get_current_user)):
     
     # Table Header
     pdf.set_fill_color(200, 220, 255)
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 10, "No. Order", 1, 0, "C", True)
-    pdf.cell(30, 10, "Penerima", 1, 0, "C", True)
-    pdf.cell(40, 10, "Pelanggan", 1, 0, "C", True)
-    pdf.cell(25, 10, "Tanggal", 1, 0, "C", True)
-    pdf.cell(20, 10, "Status", 1, 0, "C", True)
-    pdf.cell(20, 10, "Bayar", 1, 0, "C", True)
-    pdf.cell(25, 10, "Total", 1, 1, "C", True)
+    pdf.set_font("Arial", "B", 8)
+    pdf.cell(28, 10, "No. Order", 1, 0, "C", True)
+    pdf.cell(28, 10, "Penerima", 1, 0, "C", True)
+    pdf.cell(35, 10, "Pelanggan", 1, 0, "C", True)
+    pdf.cell(22, 10, "Tgl Order", 1, 0, "C", True)
+    pdf.cell(26, 10, "Tgl Bayar", 1, 0, "C", True)
+    pdf.cell(18, 10, "Status", 1, 0, "C", True)
+    pdf.cell(15, 10, "Bayar", 1, 0, "C", True)
+    pdf.cell(18, 10, "Total", 1, 1, "C", True)
     
-    pdf.set_font("Arial", size=8)
+    pdf.set_font("Arial", size=7)
     for o in orders:
-        raw_dt = o["created_at"][:10]  # YYYY-MM-DD
+        raw_dt = o["created_at"][:10]
         dt = f"{raw_dt[8:10]}-{raw_dt[5:7]}-{raw_dt[0:4]}"
+        
+        raw_paid = o.get("paid_at", "")
+        dt_paid = "-"
+        if raw_paid:
+            dt_paid = f"{raw_paid[8:10]}-{raw_paid[5:7]}-{raw_paid[0:4]}"
+            if len(raw_paid) >= 16:
+                dt_paid += f" {raw_paid[11:16]}"
+        
         admin_name = user_map.get(o.get("created_by"), "Unknown")
         
-        pdf.cell(30, 8, o["order_no"], 1)
-        pdf.cell(30, 8, admin_name[:15], 1)
-        pdf.set_font("Arial", "B", 8)
-        pdf.cell(40, 8, o["customer_name"][:20], 1)
-        pdf.set_font("Arial", size=8)
-        pdf.cell(25, 8, dt, 1, 0, "C")
-        pdf.cell(20, 8, o["status"], 1, 0, "C")
-        pdf.cell(20, 8, o["payment_status"], 1, 0, "C")
-        pdf.cell(25, 8, f"Rp {int(o['total']):,}".replace(",", "."), 1, 1, "R")
+        pdf.cell(28, 8, o["order_no"], 1)
+        pdf.cell(28, 8, admin_name[:15], 1)
+        pdf.set_font("Arial", "B", 7)
+        pdf.cell(35, 8, o["customer_name"][:20], 1)
+        pdf.set_font("Arial", size=7)
+        pdf.cell(22, 8, dt, 1, 0, "C")
+        pdf.cell(26, 8, dt_paid, 1, 0, "C")
+        pdf.cell(18, 8, o["status"], 1, 0, "C")
+        pdf.cell(15, 8, o["payment_status"], 1, 0, "C")
+        pdf.cell(18, 8, f"Rp {int(o['total']):,}".replace(",", "."), 1, 1, "R")
         
     pdf_bytes = pdf.output()
     
@@ -547,10 +557,11 @@ async def export_excel(_user=Depends(get_current_user)):
     
     # Clean up for Excel
     if not df.empty:
-        cols = ["order_no", "customer_name", "created_at", "penerima", "status", "payment_status", "total"]
+        cols = ["order_no", "customer_name", "created_at", "paid_at", "penerima", "status", "payment_status", "total"]
         df = df[cols]
-        df.columns = ["No. Order", "Pelanggan", "Tanggal", "Penerima", "Status Pesanan", "Status Bayar", "Total Harga"]
-        df["Tanggal"] = df["Tanggal"].apply(lambda x: f"{x[8:10]}-{x[5:7]}-{x[0:4]}")
+        df.columns = ["No. Order", "Pelanggan", "Tgl Order", "Tgl Bayar", "Penerima", "Status Pesanan", "Status Bayar", "Total Harga"]
+        df["Tgl Order"] = df["Tgl Order"].apply(lambda x: f"{x[8:10]}-{x[5:7]}-{x[0:4]}" if x else "-")
+        df["Tgl Bayar"] = df["Tgl Bayar"].apply(lambda x: f"{x[8:10]}-{x[5:7]}-{x[0:4]} {x[11:16]}" if x else "-")
     
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
