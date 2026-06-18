@@ -168,6 +168,7 @@ class Order(BaseModel):
     status: Literal["diterima", "dicuci", "siap", "selesai", "diambil"]
     payment_status: Literal["unpaid", "paid"]
     payment_method: Optional[str] = None
+    paid_at: Optional[str] = None
     notes: Optional[str] = ""
     created_by: str
     created_at: str
@@ -436,10 +437,16 @@ async def update_status(oid: str, payload: StatusUpdate, _user=Depends(get_curre
 
 @api.put("/orders/{oid}/payment", response_model=Order)
 async def update_payment(oid: str, payload: PaymentUpdate, _user=Depends(get_current_user)):
-    await db.orders.update_one(
-        {"id": oid},
-        {"$set": {"payment_status": payload.payment_status, "payment_method": payload.payment_method}},
-    )
+    update_data = {
+        "payment_status": payload.payment_status,
+        "payment_method": payload.payment_method,
+    }
+    if payload.payment_status == "paid":
+        update_data["paid_at"] = now_iso()
+    else:
+        update_data["paid_at"] = None
+
+    await db.orders.update_one({"id": oid}, {"$set": update_data})
     doc = await db.orders.find_one({"id": oid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Order not found")
@@ -829,9 +836,9 @@ async def midtrans_notification(request: Request):
     tstatus = data.get("transaction_status")
     update = {}
     if tstatus in ("settlement", "capture"):
-        update = {"payment_status": "paid", "payment_method": "midtrans"}
+        update = {"payment_status": "paid", "payment_method": "midtrans", "paid_at": now_iso()}
     elif tstatus in ("cancel", "deny", "expire"):
-        update = {"payment_status": "unpaid"}
+        update = {"payment_status": "unpaid", "paid_at": None}
     if update:
         await db.orders.update_one({"order_no": order_no}, {"$set": update})
     return {"ok": True}
